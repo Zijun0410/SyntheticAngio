@@ -1,0 +1,36 @@
+%%% Synthetic the angiogram image
+
+Config_Path
+
+%--%
+image_identifier = 'example_01';
+dicom_identifier = '001 (7)_R.dcm';
+
+%--%
+% To get file_path_map, num_png_files
+Load_Rhino_Image
+% To get sample_frame, meta_data
+Load_Real_Background_Image
+
+
+for iBranch=1:num_png_files
+    main_branch_pre = im2double(imread(file_path_map(strcat(num2str(iBranch),'.png'))));
+    main_branch_gray = rgb2gray(main_branch_pre);
+    
+end
+
+%-% Clear the border of 20 pixels
+boudary_length = 20;
+image_size = size(main_branch_gray,2);
+border = zeros(image_size,image_size);
+border(:,1:boudary_length) = 1;
+border(:,image_size-boudary_length+1:end) = 1;
+border(1:boudary_length,:) = 1;
+border(image_size-boudary_length+1:end,:) = 1;
+main_branch_gray(border==1) = 1;
+
+ref_size = size(sample_frame,2);
+main_branch = imresize(main_branch_gray,[ref_size ref_size]);
+% figure;imshow(main_branch);
+
+nomalized_sample_frame()
