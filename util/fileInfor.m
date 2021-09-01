@@ -1,4 +1,4 @@
-function [path_map, n] = fileInfor(folder, filetype)
+function [path_map, n, files] = fileInfor(folder, filetype)
 %
 % fileInfor will determine the number of files having a given suffix, 
 % (ie, '.m', '.mat','.txt') that reside in 'folder'
@@ -10,7 +10,8 @@ function [path_map, n] = fileInfor(folder, filetype)
 % OUTPUTS:
 %   n           integer, number of files in 'folder' having the prescribed
 %               suffix
-%   path_map         an instance of a map that maps file name to its full path
+%   path_map    an instance of a map that maps file name to its full path
+%   file        a Struct that contain all the directory information
 
     search_term = fullfile(folder, strcat('*',filetype, '*'));
     files = dir(search_term);
