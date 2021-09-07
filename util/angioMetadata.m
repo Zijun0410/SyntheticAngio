@@ -9,6 +9,20 @@ function meta_data_out = angioMetadata(dicom_path, field_of_interest)
     meta_data = load_metadata(dicom_path);
     % Validate the values given for primary and secondary angulations. 
     meta_data_out = validate_fields(meta_data, field_of_interest);
+
+    % Side Notes
+    % % Source-Intensifier Distance (SID)
+    % meta_data.DistanceSourceToDetector
+    % % Source-Object Distance (SOD)
+    % meta_data.DistanceSourceToPatient
+    % % Exposure Related
+    % meta_data.EstimatedRadiographicMagnificationFactor
+    % meta_data.ExposureTime
+    % % Angle Related
+    % meta_data.PositionerPrimaryAngle
+    % meta_data.PositionerSecondaryAngle
+    % DistanceSourceToPatient = DistanceSourceToIsocenter - 
+    %     (TableHeight-DistanceObjectToTableTop)*cos(BeamAngle)
 end
 
 function metadata = load_metadata(dicom_path)
@@ -27,7 +41,11 @@ function meta_data_out = validate_fields(meta_data, field_of_interest)
         % Iterate through field of interest
         target_field = string(field_cell);
         if isfield(meta_data,target_field)
-            meta_data_out.(target_field) = meta_data.(target_field);
+            if ~isempty(meta_data.(target_field))
+                meta_data_out.(target_field) = meta_data.(target_field);
+            else
+                meta_data_out.(target_field) = -1;
+            end
         else
             meta_data_out.(target_field) = -1;
         end

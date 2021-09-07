@@ -18,7 +18,7 @@ field_of_interest = {'PositionerPrimaryAngle','PositionerSecondaryAngle',...
       'TableHeight','DistanceObjectToTableTop','BeamAngle'};
 
 if Rerun_Flag
-    for iFile = 1:num_dicom_files
+    for iFile = 119:num_dicom_files
         dicom_file_name = file_struct(iFile).name;
         string_splits = string(split(dicom_file_name,'.'));
         png_save_path = fullfile(base_data_path, 'BackGround_Image','All',...
@@ -90,6 +90,8 @@ annotated_image_dir = fullfile(base_data_path, 'BackGround_Image', 'Annotated');
 %-% 6. Save the position of catheter endpoint in the form of center-size
 %      Coordinates (center_x, center_y, width, height) on a (0,1) scale.
 
+meta_table = [];
+bounding_box = zeros(size(good_quality,1),4);
 for iGood = 1:size(good_quality,1)
     %-% Read in image 
     png_file_name = strcat(good_quality.file_name{iGood},'.png.png');
@@ -97,31 +99,26 @@ for iGood = 1:size(good_quality,1)
     loaded_annotated = rgb2gray(loaded_annotated);
     annotation_binary = (loaded_annotated==1);
     annotation = bwareafilt(annotation_binary,1);
+    
     %-% Obtain the location of bounding box
     annotation_boundingbox = regionprops(annotation, 'BoundingBox').BoundingBox;
-    x_center = annotation_boundingbox(1)+annotation_boundingbox(3)/2;
-    y_center = annotation_boundingbox(2)+annotation_boundingbox(4)/2;
-    width = annotation_boundingbox(3)+2;
-    height = annotation_boundingbox(4)+2;
+    bounding_box(iGood,1) = annotation_boundingbox(1)+annotation_boundingbox(3)/2;
+    bounding_box(iGood,2) = annotation_boundingbox(2)+annotation_boundingbox(4)/2;
+    bounding_box(iGood,3) = annotation_boundingbox(3)+2;
+    bounding_box(iGood,4) = annotation_boundingbox(4)+2;
     
     %-% Readin Metadata to form the final metadata table
-    
+    meta_save_path = fullfile(base_data_path, 'Meta_Data',...
+            strcat(good_quality.file_name{iGood}, '.mat'));
+    meta_data = importdata(meta_save_path);
+    meta_tab = struct2table(meta_data);
+    meta_table = [meta_table; meta_tab];
 end
-% Information of interest in MetaDara
 
-% % Source-Intensifier Distance (SID)
-% meta_data.DistanceSourceToDetector
-% % Source-Object Distance (SOD)
-% meta_data.DistanceSourceToPatient
-% % Exposure Related
-% meta_data.EstimatedRadiographicMagnificationFactor
-% meta_data.ExposureTime
-% % Angle Related
-% meta_data.PositionerPrimaryAngle
-% meta_data.PositionerSecondaryAngle
-
-% DistanceSourceToPatient = DistanceSourceToIsocenter - 
-%     (TableHeight-DistanceObjectToTableTop)*cos(BeamAngle)
+bounding_box_table = array2table(bounding_box,'VariableNames',{'CenterX', 'CenterY','Width','Height'});
+file_name_table = array2table(good_quality.file_name,'VariableNames',{'FileName'});
+final_table = [file_name_table, bounding_box_table, meta_table];
+writetable(final_table,fullfile(base_data_path, 'meta_summary.csv'),'Delimiter',',');
 
 %-% TODO: Get the next frame for some of the image
 % need_next_frame = quality_tab(quality_tab.quality_label==3,:);
