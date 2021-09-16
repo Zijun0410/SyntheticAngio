@@ -7,7 +7,7 @@ import math
 import System
 
 try:
-    import scriptcontext as sc
+    import scriptcontext
 except ImportError as e:  # No Rhino doc is available. This module is useless.
     raise ImportError("Failed to import Rhino scriptcontext.\n{}".format(e))
     
@@ -111,14 +111,14 @@ def viewport_by_name(viewName=None):
         viewPort: An active viewport of the given name      
     """
     try:
-        return sc.doc.Views.Find(viewName, False).ActiveViewport \
-            if viewName is not None else sc.doc.Views.ActiveView.ActiveViewport
+        return scriptcontext.doc.Views.Find(viewName, False).ActiveViewport \
+            if viewName is not None else scriptcontext.doc.Views.ActiveView.ActiveViewport
     except Exception:
         # try to find a named view and restore it
         viewTable = Rhino.RhinoDoc.ActiveDoc.NamedViews
         for i, viewp in enumerate(viewTable):
             if viewp.Name == viewName:
-                activeViewport = sc.doc.Views.ActiveView.ActiveViewport
+                activeViewport = scriptcontext.doc.Views.ActiveView.ActiveViewport
                 viewTable.Restore (i, activeViewport)
                 return activeViewport
         else:

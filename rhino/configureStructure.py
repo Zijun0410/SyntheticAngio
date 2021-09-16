@@ -8,10 +8,11 @@ import System
 import os
 
 try:
-    import scriptcontext as sc
+    import scriptcontext
 except ImportError as e:  # No Rhino doc is available. This module is useless.
     raise ImportError("Failed to import Rhino scriptcontext.\n{}".format(e))
 
+# https://github.com/mcneel/rhinoscriptsyntax/tree/rhino-6.x/Scripts/rhinoscript
 
 baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
 
@@ -64,6 +65,34 @@ for branch_identifier in reconstructedCurves.keys():
         positions_radii = nonMajorMatchRadii
     # Construct the Pipe
 
+
+def AddPipe(curve_id, parameters, radii, blend_type=0, cap=0, fit=False):
+    # An modificatiioin for the code from the below source
+    # https://github.com/mcneel/rhinoscriptsyntax/blob/rhino-6.x/Scripts/rhinoscript/surface.py
+
+    """Creates a single walled surface with a circular profile around a curve
+    Parameters:
+        curve_object: <Rhino.Geometry.Curve> the rail curve
+        parameters, radii: ([float, ...]), list of radius values at normalized curve parameters
+        blend_type: (int, optional), 0(local) or 1(global)
+        cap: (int, optional), 0(none), 1(flat), 2(round)
+        fit: (bool, optional), attempt to fit a single surface
+    Returns:
+        breps: <Rhino.Geometry.Brep> the created Brep objects  
+      
+    """
+    rail = rhutil.coercecurve(curve_id, -1, True)
+    abs_tol = scriptcontext.doc.ModelAbsoluteTolerance
+    ang_tol = scriptcontext.doc.ModelAngleToleranceRadians
+    if type(parameters) is int or type(parameters) is float: parameters = [parameters]
+    if type(radii) is int or type(radii) is float: radii = [radii]
+    parameters = map(float,parameters)
+    radii = map(float,radii)
+    cap = System.Enum.ToObject(Rhino.Geometry.PipeCapMode, cap)
+    breps = Rhino.Geometry.Brep.CreatePipe(rail, parameters, radii, blend_type==0, cap, fit, abs_tol, ang_tol)
+    # rc = [scriptcontext.doc.Objects.AddBrep(brep) for brep in breps]
+    # scriptcontext.doc.Views.Redraw()
+    return breps
 
 
 def get_radii(target_point, positions, baseline_radii_major):
@@ -119,6 +148,7 @@ def GenerateStenosis(baseline_radii_major, stenosis_point, effect_region, percen
         positions_param[min(indice_within_region):max(indice_within_region)+1] = [stenosis_region_start, stenosis_point, stenosis_region_end]
         baseline_radii_major[min(indice_within_region):max(indice_within_region)+1] = [start_radii, stenosis_radii, end_radii]
     positions_param_out = [round(position,2) for position in positions_param]
+
     return positions_param_out, baseline_radii_major
 
 
