@@ -12,7 +12,9 @@ try:
 except ImportError as e:  # No Rhino doc is available. This module is useless.
     raise ImportError("Failed to import Rhino scriptcontext.\n{}".format(e))
 
+# Some reference page 
 # https://github.com/mcneel/rhinoscriptsyntax/tree/rhino-6.x/Scripts/rhinoscript
+# https://developer.rhino3d.com/api/RhinoScriptSyntax/
 
 baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
 
@@ -31,7 +33,7 @@ nonMajorMatchRadii = {'branch_4':baseline_radii_middle, 'branch_5':baseline_radi
     'branch_2':baseline_radii_small, 'branch_3':baseline_radii_small, 
     'branch_1':baseline_radii_minor}
 
-def loadCurveFromTxt(baseDir, defaultBranchesNum):
+def LoadCurveFromTxt(baseDir, defaultBranchesNum):
     """
     Load back the reconstructed curve from the text file
     Input:
@@ -52,22 +54,8 @@ def loadCurveFromTxt(baseDir, defaultBranchesNum):
         reconstructedCurves[identifier] = Rhino.Geometry.Curve.CreateControlPointCurve(pintList)
     return reconstructedCurves
 
-reconstructedCurves = loadCurveFromTxt(baseDir, defaultBranchesNum)
-
-# Iterate through branch
-for branch_identifier in reconstructedCurves.keys():
-    # Get the positions_param and positions_radii under different settings
-    if branch_identifier == 'major':
-        positions_param, positions_radii = GenerateStenosis(baseline_radii_major, 
-            stenosis_point, effect_region, percentage)
-    else:
-        positions_param = dedault_position_param
-        positions_radii = nonMajorMatchRadii
-    # Construct the Pipe
-
-
-def AddPipe(curve_id, parameters, radii, blend_type=0, cap=0, fit=False):
-    # An modificatiioin for the code from the below source
+def AddPipe(curve_object, parameters, radii, blend_type=0, cap=1, fit=False):
+    # An modificatiioin for the code from the following source
     # https://github.com/mcneel/rhinoscriptsyntax/blob/rhino-6.x/Scripts/rhinoscript/surface.py
 
     """Creates a single walled surface with a circular profile around a curve
@@ -89,7 +77,7 @@ def AddPipe(curve_id, parameters, radii, blend_type=0, cap=0, fit=False):
     parameters = map(float,parameters)
     radii = map(float,radii)
     cap = System.Enum.ToObject(Rhino.Geometry.PipeCapMode, cap)
-    breps = Rhino.Geometry.Brep.CreatePipe(rail, parameters, radii, blend_type==0, cap, fit, abs_tol, ang_tol)
+    breps = Rhino.Geometry.Brep.CreatePipe(curve_object, parameters, radii, blend_type, cap, fit, abs_tol, ang_tol)
     # rc = [scriptcontext.doc.Objects.AddBrep(brep) for brep in breps]
     # scriptcontext.doc.Views.Redraw()
     return breps
@@ -151,5 +139,45 @@ def GenerateStenosis(baseline_radii_major, stenosis_point, effect_region, percen
 
     return positions_param_out, baseline_radii_major
 
+def GenerateMesh(reconstructedCurves):
+    """
+    1. create pipe brep from the vessel curve rail, 
+    2. trim out the overlapping surface between major vessels and small vessels
+    3. turn all the berps into meshes
+    """    
+    # Iterate through branch and created pipe brep
+    vesselBreps = {}
+    for branch_identifier in list(reconstructedCurves.keys()):
+        # Get the positions_param and positions_radii under different settings
+        if branch_identifier == 'major':
+            positions_param, positions_radii = GenerateStenosis(baseline_radii_major, 
+                stenosis_point, effect_region, percentage)
+        else:
+            positions_param = dedault_position_param
+            positions_radii = nonMajorMatchRadii
+        # Construct the Pipe brep
+        vesselBreps[branch_identifier] = AddPipe(reconstructedCurves[branch_identifier], positions_param, positions_radii)
 
+    # Cut all the small branches with the main branch and turn the output into a mesh
+    majorBrep = vesselBreps['major']
+    allIdentifiers = list(vesselBreps.keys())
+    nonMajorIdentifiers = allIdentifiers.remove('major')
 
+    defaultMeshParams = Rhino.Geometry.MeshingParameters.Default 
+    vesselMeshes = {}
+    vesselMeshes['major'] = Rhino.Geometry.Mesh.CreateFromBrep(majorBrep, defaultMeshParams)
+
+    for nonMajorIdentifier in nonMajorIdentifiers:
+        branchBrep = vesselBreps[nonMajorIdentifier]
+        # https://developer.rhino3d.com/5/api/RhinoCommon/html/M_Rhino_Geometry_Brep_Split.htm
+        # https://searchcode.com/total-file/16042741/
+
+        tol = scriptcontext.doc.ModelAbsoluteTolerance
+        cuttedBrep = branchBrep.Split(majorBrep, tol)
+        keptBrep = cuttedBrep[0]
+        # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Mesh_CreateFromBrep_1.htm
+        vesselMeshes[nonMajorIdentifier] = Rhino.Geometry.Mesh.CreateFromBrep(keptBrep, defaultMeshParams)
+
+if( __name__ == "__main__" ):
+    reconstructedCurves = LoadCurveFromTxt(baseDir, defaultBranchesNum)
+    vesselMeshes = GenerateMesh(reconstructedCurves)

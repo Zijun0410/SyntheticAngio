@@ -196,10 +196,12 @@ def CaptureView(filePath, lightVector, receiveScreenPlane, distanceSourceToPatie
         filePath = '{}.png'.format(filePath)
     System.Drawing.Bitmap.Save(pic, filePath)
     return filePath
+
+if( __name__ == "__main__" ):
     
-visualizatioinPlane, lightVector = ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle)
+    visualizatioinPlane, lightVector = ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle)
 
-receiveScreenPlane, receiveScreen = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
-    distanceSourceToDetector, planeSize)
+    receiveScreenPlane, receiveScreen = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
+        distanceSourceToDetector, planeSize)
 
-outFilePath = CaptureView(filePath, lightVector, receiveScreenPlane, distanceSourceToPatient, 1100, 1100)
+    outFilePath = CaptureView(filePath, lightVector, receiveScreenPlane, distanceSourceToPatient, 1100, 1100)
