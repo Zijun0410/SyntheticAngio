@@ -16,9 +16,6 @@ except ImportError as e:  # No Rhino doc is available. This module is useless.
 # https://github.com/mcneel/rhinoscriptsyntax/tree/rhino-6.x/Scripts/rhinoscript
 # https://developer.rhino3d.com/api/RhinoScriptSyntax/
 
-baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
-
-defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
 # Radius of major branch on standarized domain
 baseline_radii_major = [1.8, 1.6, 1.5, 1.45, 1.4, 1.35, 1.3, 1.25, 1.1, 0.9, 0.7, 0.5, 0.3]
 
@@ -32,6 +29,8 @@ dedault_position_param = [0, 0.3, 0.63, 1]
 nonMajorMatchRadii = {'branch_4':baseline_radii_middle, 'branch_5':baseline_radii_middle, 
     'branch_2':baseline_radii_small, 'branch_3':baseline_radii_small, 
     'branch_1':baseline_radii_minor}
+
+## TODO: add these to the right place
 
 def LoadCurveFromTxt(baseDir, defaultBranchesNum):
     """
@@ -92,22 +91,24 @@ def get_radii(target_point, positions, baseline_radii_major):
     target_radii = ref_radii[0] - (target_point - ref_position[0])*(ref_radii[0] - ref_radii[1])/(ref_position[1] - ref_position[0])
     return target_radii
 
-def GenerateStenosis(baseline_radii_major, stenosis_point, effect_region, percentage):
+def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major):
     """
     Generate stenosis on the major vessel curve 
     Input:
         baseline_radii_major: a list of floating point numbers, representing the baseline  
                         radius of the major vessl curve when there are no stenosis
-        stenosis_point: float between (0, 1), representing the point where stenosis locate
+        stenosis_location: float between (0, 1), representing the point where stenosis locate
         effect_region: float the effect region of stenosis
         percentage: float between (0, 1), %DS, a classcial measure of stenosis
     """
+    updated_radii_major = baseline_radii_major.copy()
+
     ref_point = len(baseline_radii_major)
     positions_param_prep = list(range(0,ref_point,1))
     positions_param = [round(i/(ref_point-1),2) for i in positions_param_prep]
     
-    stenosis_region_start = stenosis_point - effect_region
-    stenosis_region_end = stenosis_point + effect_region
+    stenosis_region_start = stenosis_location - effect_region
+    stenosis_region_end = stenosis_location + effect_region
     
     # Obtain the indice of the reference points that fall into the stenosis range
     indice_within_region = []
@@ -115,12 +116,12 @@ def GenerateStenosis(baseline_radii_major, stenosis_point, effect_region, percen
     for index, pos in enumerate(positions_param):
         if stenosis_region_start <= pos <= stenosis_region_end:
             indice_within_region.append(index)
-        if pos <= stenosis_point < positions_param[index+1]:
+        if pos <= stenosis_location < positions_param[index+1]:
             stenosis_relative_indices = (index, index+1)
             
     # print(indice_within_region)
     start_radii = round(get_radii(stenosis_region_start, positions_param, baseline_radii_major),2)
-    stenosis_radii = round((1-percentage)*get_radii(stenosis_point, positions_param, baseline_radii_major),2)
+    stenosis_radii = round((1-percentage)*get_radii(stenosis_location, positions_param, baseline_radii_major),2)
     end_radii = round(get_radii(stenosis_region_end, positions_param, baseline_radii_major),2)
 
     if len(indice_within_region) == 0:
@@ -128,18 +129,19 @@ def GenerateStenosis(baseline_radii_major, stenosis_point, effect_region, percen
         # to create a stenosis, add three additional reference points to the 
         # point list at the position of the stenosis_relative_indices
         ref_index = stenosis_relative_indices[1]
-        positions_param[ref_index:ref_index] = [stenosis_region_start, stenosis_point, stenosis_region_end]   
-        baseline_radii_major[ref_index:ref_index] = [start_radii, stenosis_radii, end_radii]
+        positions_param[ref_index:ref_index] = [stenosis_region_start, stenosis_location, stenosis_region_end]   
+        updated_radii_major[ref_index:ref_index] = [start_radii, stenosis_radii, end_radii]
     else:
         # One or more of the original reference points fall into the stenosis region, 
         # replace them with the stenosis region reference points
-        positions_param[min(indice_within_region):max(indice_within_region)+1] = [stenosis_region_start, stenosis_point, stenosis_region_end]
-        baseline_radii_major[min(indice_within_region):max(indice_within_region)+1] = [start_radii, stenosis_radii, end_radii]
+        positions_param[min(indice_within_region):max(indice_within_region)+1] = [stenosis_region_start, stenosis_location, stenosis_region_end]
+        updated_radii_major[min(indice_within_region):max(indice_within_region)+1] = [start_radii, stenosis_radii, end_radii]
     positions_param_out = [round(position,2) for position in positions_param]
 
-    return positions_param_out, baseline_radii_major
+    return positions_param_out, updated_radii_major
 
-def GenerateMesh(reconstructedCurves):
+def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3, effect_region=0.02, percentage=0.8,
+    baseline_radii_major=[1.8,1.6,1.5,1.45,1.4,1.35,1.3,1.25,1.1,0.9,0.7,0.5,0.3]):
     """
     1. create pipe brep from the vessel curve rail, 
     2. trim out the overlapping surface between major vessels and small vessels
@@ -148,10 +150,10 @@ def GenerateMesh(reconstructedCurves):
     # Iterate through branch and created pipe brep
     vesselBreps = {}
     for branch_identifier in list(reconstructedCurves.keys()):
-        # Get the positions_param and positions_radii under different settings
+        # Get the positions_param and positions_ra7dii under different settings
         if branch_identifier == 'major':
             positions_param, positions_radii = GenerateStenosis(baseline_radii_major, 
-                stenosis_point, effect_region, percentage)
+                stenosis_location, effect_region, percentage)
         else:
             positions_param = dedault_position_param
             positions_radii = nonMajorMatchRadii
@@ -179,5 +181,7 @@ def GenerateMesh(reconstructedCurves):
         vesselMeshes[nonMajorIdentifier] = Rhino.Geometry.Mesh.CreateFromBrep(keptBrep, defaultMeshParams)
 
 if( __name__ == "__main__" ):
+    baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
+    defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
     reconstructedCurves = LoadCurveFromTxt(baseDir, defaultBranchesNum)
-    vesselMeshes = GenerateMesh(reconstructedCurves)
+    vesselMeshes = GenerateVesselMesh(reconstructedCurves)

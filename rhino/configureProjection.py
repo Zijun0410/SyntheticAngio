@@ -1,3 +1,6 @@
+__author__ = "zijung@umich.edu"
+__version__ = "2021.09.20"
+
 import System
 import Rhino
 

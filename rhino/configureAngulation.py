@@ -1,4 +1,4 @@
-__author__ = "gaozj"
+__author__ = "zijung@umich.edu"
 __version__ = "2021.09.14"
 
 import rhinoscriptsyntax as rs
@@ -125,17 +125,25 @@ def viewport_by_name(viewName=None):
             raise ValueError('Viewport "{}" was not found in the Rhino '
                              'document.'.format(viewName))
 
-def set_view(lightVector, cameraPosition, cameraUpDirection):
-    """ Helper function
+def setView(lightVector, receiveScreenPlane, distanceSourceToPatient, 
+    cameraPosition=None, cameraUpDirection=None):
+    """
     Set the camera position and orientation for Rhino's 'Perspective' viewport 
     Inputs:
         lightVector: <Rhino.Geometry.Vector3d> a vector represents the direction 
             of light 
+      Either
+        receiveScreenPlane: <Rhino.Geometry.Plane> a plane that receive the view 
+        distanceSourceToPatient: float, the distance from the camera to receive plane
+      Or provide the following two params
         cameraPosition: <Rhino.Geometry.Point3d> the point where the camera sits
         cameraUpDirection: <Rhino.Geometry.Vector3d> the direction of camera's up
     Output:  
         viewPort: An active 'Perspective' viewport that has its display mode set
     """
+    # Set the 'Perspective' viewport
+    cameraPosition = receiveScreenPlane.Origin + receiveScreenPlane.ZAxis*distanceSourceToPatient/6
+    cameraUpDirection = -receiveScreenPlane.XAxis
     view_port = viewport_by_name('Perspective')
     view_port.SetCameraTarget(Rhino.Geometry.Point3d.Add(rs.coerce3dpoint(cameraPosition), lightVector), False)
     view_port.SetCameraDirection(lightVector, False)
@@ -143,18 +151,17 @@ def set_view(lightVector, cameraPosition, cameraUpDirection):
     view_port.CameraUp = cameraUpDirection
     return view_port
 
-def CaptureView(filePath, lightVector, receiveScreenPlane, distanceSourceToPatient,
-                width=None, height=None, displayMode='Shaded', transparent=True):
-    """Capture a Viewport to a PNG file path.
+def CaptureView(filePath, viewport, width=1100, height=1100, displayMode='Shaded', transparent=True):
 
+    """
+    Capture a Viewport to a PNG file path.
     Args:
         filePath: Full path to the file where the image will be saved.
-        lightVector, cameraPosition, cameraUpDirection: see set_view function
-        receiveScreenPlane, distanceSourceToPatient: see ConfigreceiveScreen
+        viewport: An active 'Perspective' viewport that has its display mode set
         width: Integer for the image width in pixels. If None, the width of the
-            active viewport will be used. (Default: None).
+            active viewport will be used. (Default: 1100).
         height: Integer for the image height in pixels. If None, the height of the
-            active viewport will be used. (Default: None).
+            active viewport will be used. (Default: 1100).
         displayMode: Text for the display mode to which the Rhino viewport will be
             set. For example: Wireframe, Shaded, Rendered, etc. If None, it will
             be the current viewport's display mode. (Default: Shaded).
@@ -164,10 +171,6 @@ def CaptureView(filePath, lightVector, receiveScreenPlane, distanceSourceToPatie
     Returns:
         Full path to the image file that was written.
     """
-    # Set the 'Perspective' viewport
-    cameraPosition = receiveScreenPlane.Origin + receiveScreenPlane.ZAxis*distanceSourceToPatient/6
-    cameraUpDirection = -receiveScreenPlane.XAxis
-    viewport = set_view(lightVector, cameraPosition, cameraUpDirection)
 
     # create the view capture object
     activeViewport = viewport_by_name()
@@ -201,7 +204,10 @@ if( __name__ == "__main__" ):
     
     visualizatioinPlane, lightVector = ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle)
 
+
     receiveScreenPlane, receiveScreen = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
         distanceSourceToDetector, planeSize)
 
-    outFilePath = CaptureView(filePath, lightVector, receiveScreenPlane, distanceSourceToPatient, 1100, 1100)
+    viewport = setView(lightVector, receiveScreenPlane, distanceSourceToPatient)
+
+    outFilePath = CaptureView(filePath, viewport, 1100, 1100)

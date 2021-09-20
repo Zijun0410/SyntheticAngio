@@ -1,3 +1,7 @@
+__author__ = "zijung@umich.edu"
+__version__ = "2021.09.16"
+
+
 import rhinoscriptsyntax as rs
 import os
 
