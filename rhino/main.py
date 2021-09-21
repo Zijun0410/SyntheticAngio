@@ -79,7 +79,7 @@ def main(baseDir, defaultBranchesNum):
 
         stenosis_location, effect_region, percentage = RandomStenosisGenerator()
         # Random movement generator TTODO
-        # reconstructedCurves = RandomMovementGenerator(reconstructedCurves)
+        # reconstructedCurves = HeartMovementGenerator(reconstructedCurves)
         
         # -- vesselMeshes is a <python dict> with branch identifier as key,
         #    and <Rhino.Geometry.Mesh> as values

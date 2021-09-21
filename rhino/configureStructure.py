@@ -180,6 +180,71 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3, effect_region
         # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Mesh_CreateFromBrep_1.htm
         vesselMeshes[nonMajorIdentifier] = Rhino.Geometry.Mesh.CreateFromBrep(keptBrep, defaultMeshParams)
 
+def DivideCurve(curveObject, segmentNum, return_points=True):
+    """Helper function customized from the following link
+    https://github.com/mcneel/rhinoscriptsyntax/blob/rhino-6.x/Scripts/rhinoscript/curve.py
+    Divides a curve object into a specified number of segments.
+    Inputs:
+      curveObject: <Rhino.Geometry.Curve> the curve object to be divided
+      segmentNum: <python int> The number of segments.
+      return_points: <python bool, optional> If omitted or True, points are returned.
+          If False, then a list of curve parameters are returned.
+    Returns:
+      list(point|number, ...): If `return_points` is not specified or True, then a list containing 3D division points.
+      list(point|number, ...): If `return_points` is False, then an array containing division curve parameters.
+      None: if not successful, or on error.
+    """
+    # curveParams are the division curve parameters 
+    curveParams = curveObject.DivideByCount(segmentNum, True)
+    if return_points:
+        dividedPoints = [curveObject.PointAt(t) for t in curveParams]
+        return dividedPoints
+    return curveParams
+
+def StenosisSphere(curveObject, stenosis_location, segmentNum=100, radius=1, create_mesh=True):
+    """
+    Create a sphere at the stenosis location on the vessel curve
+    Inputs:
+        curveObject: <Rhino.Geometry.Curve> the curve object that we want to loacate the stenosis 
+            point as the sphere center. 
+        stenosis_location: <python float of two digits>, represents the location of stenosis
+            from the start(0) and end(1) points of the vessel.
+        radius: <python float, optional>, the radius of the sphere created
+        create_mesh: <python bool, optional> If omitted or True, return <Rhino.Geometry.Mesh>, 
+            otherwise return <Rhino.Geometry.Sphere>
+    Outputs:
+        stenosisMesh or stenosisSphere depend on the input
+    """
+    dividedPoints = DivideCurve(curveObject, segmentNum)
+    stenosisPoint = dividedPoints[int(dividedPoints*stenosis_location)]
+    stenosisSphere = Rhino.Geometry.Sphere(stenosisPoint, radius)
+    if create_mesh:
+        defaultMeshParams = Rhino.Geometry.MeshingParameters.Default
+        stenosisMesh = Rhino.Geometry.Mesh.CreateFromBrep(majorBrep, defaultMeshParams)
+        return stenosisMesh
+    return stenosisSphere
+
+def startPointSphere(curveObject, radius=1, create_mesh=True):
+    """
+    Create a sphere at the start point on the vessel curve.
+    Inputs:
+        curveObject: <Rhino.Geometry.Curve> the curve object that we want to loacate the 
+            start point as the sphere center.
+        radius: <python float, optional>, the radius of the sphere created
+        create_mesh: <python bool, optional> If omitted or True, return <Rhino.Geometry.Mesh>, 
+            otherwise return <Rhino.Geometry.Sphere>
+    Outputs:
+        stenosisMesh or stenosisSphere depend on the input
+    """
+    pointAtStart = curveObject.PointAtStart
+    startPointSphere = Rhino.Geometry.Sphere(pointAtStart, radius)
+    if create_mesh:
+        defaultMeshParams = Rhino.Geometry.MeshingParameters.Default
+        startPointMesh = Rhino.Geometry.Mesh.CreateFromBrep(majorBrep, defaultMeshParams)
+        return startPointMesh
+    return startPointSphere    
+
+
 if( __name__ == "__main__" ):
     baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
