@@ -84,7 +84,7 @@ def ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient,
     Output:
         receiveScreenPlane: <Rhino.Geometry.Plane> the plane that receive projection
             of 3D meshes.
-        receiveScreen: <Rhino.Geometry.PlaneSurface> the surface that the projections
+        receiveScreenSurface: <Rhino.Geometry.PlaneSurface> the surface that the projections
             lay on.
     """
     # Create receiveScreenPlane
@@ -93,11 +93,11 @@ def ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient,
     # Create receiveScreen
     u_interval = Rhino.Geometry.Interval(0, planeSize)
     v_interval = Rhino.Geometry.Interval(0, planeSize)
-    receiveScreen = Rhino.Geometry.PlaneSurface(receiveScreenPlane, u_interval, v_interval) 
+    receiveScreenSurface = Rhino.Geometry.PlaneSurface(receiveScreenPlane, u_interval, v_interval) 
     motionVector = (receiveScreenPlane.XAxis + receiveScreenPlane.YAxis)* planeSize / 2
     transform = Rhino.Geometry.Transform.Translation(-motionVector)
-    receiveScreen.Transform(transform)
-    return receiveScreenPlane, receiveScreen
+    receiveScreenSurface.Transform(transform)
+    return receiveScreenPlane, receiveScreenSurface
 
 def viewport_by_name(viewName=None):
     """ Helper function
@@ -205,7 +205,7 @@ if( __name__ == "__main__" ):
     visualizatioinPlane, lightVector = ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle)
 
 
-    receiveScreenPlane, receiveScreen = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
+    receiveScreenPlane, receiveScreenSurface = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
         distanceSourceToDetector, planeSize)
 
     viewport = setView(lightVector, receiveScreenPlane, distanceSourceToPatient)

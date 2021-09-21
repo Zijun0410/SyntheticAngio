@@ -4,6 +4,8 @@ __version__ = "2021.09.20"
 import os
 import random # For random generator
 from configureStructure import LoadCurveFromTxt, GenerateMesh
+from configureLayer import addLayer, deleteLayerObject
+
 
 def readMetaData(baseDir):
     """

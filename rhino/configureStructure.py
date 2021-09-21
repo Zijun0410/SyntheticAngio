@@ -30,7 +30,7 @@ nonMajorMatchRadii = {'branch_4':baseline_radii_middle, 'branch_5':baseline_radi
     'branch_2':baseline_radii_small, 'branch_3':baseline_radii_small, 
     'branch_1':baseline_radii_minor}
 
-## TODO: add these to the right place
+## TODO: add these to the right file location
 
 def LoadCurveFromTxt(baseDir, defaultBranchesNum):
     """

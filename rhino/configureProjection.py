@@ -17,7 +17,6 @@ def HatchMeshProjection(targetMesh, receiveScreenPlane, viewport, colorCode, alp
     # https://developer.rhino3d.com/api/RhinoCommon/html/T_Rhino_DocObjects_ViewportInfo.htm
     activeViewportInfor = Rhino.DocObjects.ViewportInfo(viewport)
     meshOutline = targetMesh.GetOutlines(activeViewportInfor, receiveScreenPlane)
-
     AddHatch(meshOutline, colorCode, alpha)
 
 def AddHatch(curveObjects, colorCode, alpha, index=0):
@@ -46,7 +45,7 @@ def AddHatch(curveObjects, colorCode, alpha, index=0):
         hatch.SetGradientFill(colorGradient)
         #-# For rhino to show the hatch: Rhino.RhinoDoc.ActiveDoc.Objects.AddHatch(hatch)
         scriptcontext.doc.Objects.AddHatch(hatch)
-    # scriptcontext.doc.Views.RedrawEnabled = False    
+    # scriptcontext.doc.Views.RedrawEnabled = False 
     scriptcontext.doc.Views.Redraw() 
     #-# For grasshopper to preview: Rhino.Geometry.Hatch.CreateDisplayGeometry()
     # Rhino.Display.DisplayPipeline.DrawHatch(hatch)
