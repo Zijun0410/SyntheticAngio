@@ -1,16 +1,11 @@
 __author__ = "zijung@umich.edu"
 __version__ = "2021.09.14"
 
-import rhinoscriptsyntax as rs
 import Rhino
 import math
 import System
+import scriptcontext
 
-try:
-    import scriptcontext
-except ImportError as e:  # No Rhino doc is available. This module is useless.
-    raise ImportError("Failed to import Rhino scriptcontext.\n{}".format(e))
-    
 def ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle,
     isocenter_x = 8.5, isocenter_y = -10.5, isocenter_z = 50):
     """
@@ -55,7 +50,7 @@ def ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle,
     #print(visualizatioinPlane) 
     return visualizatioinPlane, lightVector
 
-def offset_plane(plane, distance):
+def offsetPlane(plane, distance):
     """Helper function
     Offset the Plane along the Z-axis by certain distance
         Inputs:
@@ -64,11 +59,11 @@ def offset_plane(plane, distance):
         Outputs:
             new_plane: <Rhino.Geometry.Plane> the new plane created
     """
-    direction_vector = plane.ZAxis*distance
-    # print(direction_vector)
-    new_origin = plane.Origin + direction_vector
-    new_plane = Rhino.Geometry.Plane(new_origin, plane.ZAxis)
-    return new_plane
+    directionVector = plane.ZAxis*distance
+    # print(directionVector)
+    newOrigin = plane.Origin + directionVector
+    newPlane = Rhino.Geometry.Plane(newOrigin, plane.ZAxis)
+    return newPlane
 
 def ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
     distanceSourceToDetector, planeSize=150):
@@ -84,22 +79,24 @@ def ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient,
     Output:
         receiveScreenPlane: <Rhino.Geometry.Plane> the plane that receive projection
             of 3D meshes.
-        receiveScreenSurface: <Rhino.Geometry.PlaneSurface> the surface that the projections
-            lay on.
+        receiveScreenMesh: <Rhino.Geometry.Mesh> PlaneSurface to Brep to Mesh, used for 
+           generating the hatch outline for a receive screen
     """
     # Create receiveScreenPlane
     distanceIsometricToScreen = distanceSourceToPatient - distanceSourceToDetector
-    receiveScreenPlane = offset_plane(visualizatioinPlane, distanceIsometricToScreen)
-    # Create receiveScreen
+    receiveScreenPlane = offsetPlane(visualizatioinPlane, distanceIsometricToScreen)
+    # Create receiveScreenSurface
     u_interval = Rhino.Geometry.Interval(0, planeSize)
     v_interval = Rhino.Geometry.Interval(0, planeSize)
     receiveScreenSurface = Rhino.Geometry.PlaneSurface(receiveScreenPlane, u_interval, v_interval) 
     motionVector = (receiveScreenPlane.XAxis + receiveScreenPlane.YAxis)* planeSize / 2
     transform = Rhino.Geometry.Transform.Translation(-motionVector)
     receiveScreenSurface.Transform(transform)
-    return receiveScreenPlane, receiveScreenSurface
+    receiveScreenBrep = receiveScreenSurface.ToBrep()
+    receiveScreenMesh = Rhino.Geometry.Mesh.CreateFromBrep(receiveScreenBrep, Rhino.Geometry.MeshingParameters.Default)
+    return receiveScreenPlane, receiveScreenMesh
 
-def viewport_by_name(viewName=None):
+def viewportByName(viewName=None):
     """ Helper function
     Get a Rhino Viewport object using the name of the viewport.
     Inputs:
@@ -130,8 +127,7 @@ def setView(lightVector, receiveScreenPlane, distanceSourceToPatient,
     """
     Set the camera position and orientation for Rhino's 'Perspective' viewport 
     Inputs:
-        lightVector: <Rhino.Geometry.Vector3d> a vector represents the direction 
-            of light 
+        lightVector: <Rhino.Geometry.Vector3d> a vector represents the direction of light
       Either
         receiveScreenPlane: <Rhino.Geometry.Plane> a plane that receive the view 
         distanceSourceToPatient: float, the distance from the camera to receive plane
@@ -144,68 +140,21 @@ def setView(lightVector, receiveScreenPlane, distanceSourceToPatient,
     # Set the 'Perspective' viewport
     cameraPosition = receiveScreenPlane.Origin + receiveScreenPlane.ZAxis*distanceSourceToPatient/6
     cameraUpDirection = -receiveScreenPlane.XAxis
-    view_port = viewport_by_name('Perspective')
-    view_port.SetCameraTarget(Rhino.Geometry.Point3d.Add(rs.coerce3dpoint(cameraPosition), lightVector), False)
+    view_port = viewportByName('Perspective')
+    view_port.SetCameraTarget(Rhino.Geometry.Point3d.Add(cameraPosition, lightVector), False)
     view_port.SetCameraDirection(lightVector, False)
-    view_port.SetCameraLocation(rs.coerce3dpoint(cameraPosition), False)
+    view_port.SetCameraLocation(cameraPosition, False)
     view_port.CameraUp = cameraUpDirection
     return view_port
 
-def CaptureView(filePath, viewport, width=1100, height=1100, displayMode='Shaded', transparent=True):
 
-    """
-    Capture a Viewport to a PNG file path.
-    Args:
-        filePath: Full path to the file where the image will be saved.
-        viewport: An active 'Perspective' viewport that has its display mode set
-        width: Integer for the image width in pixels. If None, the width of the
-            active viewport will be used. (Default: 1100).
-        height: Integer for the image height in pixels. If None, the height of the
-            active viewport will be used. (Default: 1100).
-        displayMode: Text for the display mode to which the Rhino viewport will be
-            set. For example: Wireframe, Shaded, Rendered, etc. If None, it will
-            be the current viewport's display mode. (Default: Shaded).
-        transparent: Boolean to note whether the background of the image should be
-            transparent or have the same color as the Rhino scene. (Default: True).
-
-    Returns:
-        Full path to the image file that was written.
-    """
-
-    # create the view capture object
-    activeViewport = viewport_by_name()
-    imgW = activeViewport.Size.Width if width is None else width
-    imgH = activeViewport.Size.Height if height is None else height
-    # print(imgW, imgH)
-    imgSize = System.Drawing.Size(imgW, imgH)
-
-    # capture the view
-    if displayMode is not None:
-        modeObj = Rhino.Display.DisplayModeDescription.FindByName(displayMode)
-        pic = viewport.ParentView.CaptureToBitmap(imgSize, modeObj)
-    else:
-        pic = viewport.ParentView.CaptureToBitmap(imgSize)
-
-    # remove the background color if requested
-    if transparent:
-        backCol = Rhino.ApplicationSettings.AppearanceSettings.ViewportBackgroundColor
-        if (displayMode is None and viewport.DisplayMode.EnglishName == 'Rendered') \
-                or displayMode == 'Rendered':
-            backCol = sc.doc.Views.Document.RenderSettings.BackgroundColorTop
-        pic.MakeTransparent(backCol)
-
-    # save the bitmap to a png file
-    if not filePath.endswith('.png'):
-        filePath = '{}.png'.format(filePath)
-    System.Drawing.Bitmap.Save(pic, filePath)
-    return filePath
 
 if( __name__ == "__main__" ):
     
     visualizatioinPlane, lightVector = ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle)
 
 
-    receiveScreenPlane, receiveScreenSurface = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
+    receiveScreenPlane, receiveScreenMesh = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
         distanceSourceToDetector, planeSize)
 
     viewport = setView(lightVector, receiveScreenPlane, distanceSourceToPatient)

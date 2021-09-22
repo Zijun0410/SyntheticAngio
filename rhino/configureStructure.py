@@ -1,57 +1,10 @@
 __author__ = "gaozj"
 __version__ = "2021.09.16"
 
-import rhinoscriptsyntax as rs
+import scriptcontext
 import Rhino
-import math
 import System
-import os
-
-try:
-    import scriptcontext
-except ImportError as e:  # No Rhino doc is available. This module is useless.
-    raise ImportError("Failed to import Rhino scriptcontext.\n{}".format(e))
-
-# Some reference page 
-# https://github.com/mcneel/rhinoscriptsyntax/tree/rhino-6.x/Scripts/rhinoscript
-# https://developer.rhino3d.com/api/RhinoScriptSyntax/
-
-# Radius of major branch on standarized domain
-baseline_radii_major = [1.8, 1.6, 1.5, 1.45, 1.4, 1.35, 1.3, 1.25, 1.1, 0.9, 0.7, 0.5, 0.3]
-
-# Radius of non-major branches on standarized domain
-baseline_radii_middle = [0.78, 0.69, 0.51, 0.21]
-baseline_radii_small = [0.74, 0.6, 0.47, 0.17]
-baseline_radii_minor = [0.62, 0.46, 0.45, 0.16]
-# The position paramter for non-major branches 
-dedault_position_param = [0, 0.3, 0.63, 1]
-
-nonMajorMatchRadii = {'branch_4':baseline_radii_middle, 'branch_5':baseline_radii_middle, 
-    'branch_2':baseline_radii_small, 'branch_3':baseline_radii_small, 
-    'branch_1':baseline_radii_minor}
-
-## TODO: add these to the right file location
-
-def LoadCurveFromTxt(baseDir, defaultBranchesNum):
-    """
-    Load back the reconstructed curve from the text file
-    Input:
-        baseDir: a valid directory where the curve control points are saved
-        defaultBranchNum: a dictionary of the correspondance of branch and their index 
-    Output:
-        reconstructedCurves: a dictionary of {'identifier':<Rhino.Geometry.Curve>} value pairs
-    """
-    reconstructedCurves = {}
-    for branchIdx in list(defaultBranches.keys()):
-        pintList = []
-        with open(os.path.join(baseDir,'{}.txt'.format(branchIdx)), 'r') as fileHandle:
-            linesIn = fileHandle.readlines()
-            for line in linesIn:
-                locations = line.strip('\n').split(', ')
-                pintList.append(Rhino.Geometry.Point3d(locations[0], locations[1], locations[2]))
-        identifier = defaultBranches[branchIdx]
-        reconstructedCurves[identifier] = Rhino.Geometry.Curve.CreateControlPointCurve(pintList)
-    return reconstructedCurves
+import random # For random generator
 
 def AddPipe(curve_object, parameters, radii, blend_type=0, cap=1, fit=False):
     # An modificatiioin for the code from the following source
@@ -68,7 +21,6 @@ def AddPipe(curve_object, parameters, radii, blend_type=0, cap=1, fit=False):
         breps: <Rhino.Geometry.Brep> the created Brep objects  
       
     """
-    rail = rhutil.coercecurve(curve_id, -1, True)
     abs_tol = scriptcontext.doc.ModelAbsoluteTolerance
     ang_tol = scriptcontext.doc.ModelAngleToleranceRadians
     if type(parameters) is int or type(parameters) is float: parameters = [parameters]
@@ -91,6 +43,14 @@ def get_radii(target_point, positions, baseline_radii_major):
     target_radii = ref_radii[0] - (target_point - ref_position[0])*(ref_radii[0] - ref_radii[1])/(ref_position[1] - ref_position[0])
     return target_radii
 
+def RandomStenosisGenerator(rng=1, position_range=(0,1), effect_range=(0.01, 0.05), percentage=(0,0.98)):
+    """
+    """
+    stenosis_location = random.uniform(position_range[0], position_range[1])
+    effect_region = random.uniform(effect_range[0], effect_range[1])
+    percentage = random.uniform(percentage[0], percentage[1])
+    return stenosis_location, effect_region, percentage
+
 def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major):
     """
     Generate stenosis on the major vessel curve 
@@ -101,7 +61,7 @@ def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radi
         effect_region: float the effect region of stenosis
         percentage: float between (0, 1), %DS, a classcial measure of stenosis
     """
-    updated_radii_major = baseline_radii_major.copy()
+    updated_radii_major = baseline_radii_major[:]
 
     ref_point = len(baseline_radii_major)
     positions_param_prep = list(range(0,ref_point,1))
@@ -141,22 +101,40 @@ def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radi
     return positions_param_out, updated_radii_major
 
 def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3, effect_region=0.02, percentage=0.8,
-    baseline_radii_major=[1.8,1.6,1.5,1.45,1.4,1.35,1.3,1.25,1.1,0.9,0.7,0.5,0.3]):
+    baseline_radii_major=[1.8,1.6,1.5,1.45,1.4,1.35,1.3,1.25,1.1,0.9,0.7,0.5,0.3],
+    baseline_radii_middle=[0.78, 0.69, 0.51, 0.21], baseline_radii_small=[0.74, 0.6, 0.47, 0.17],
+    baseline_radii_minor=[0.62, 0.46, 0.45, 0.16], dedault_position_param=[0, 0.3, 0.63, 1]):
     """
-    1. create pipe brep from the vessel curve rail, 
-    2. trim out the overlapping surface between major vessels and small vessels
-    3. turn all the berps into meshes
+    Generate meshes based on vessel curves rail by 
+        1. create pipe brep from the vessel curve rail, 
+        2. trim out the overlapping surface between major vessels and small vessels
+        3. turn all the berps into meshes
+    Inputs:
+        reconstructedCurves: <python dict>, stores the vessel curve rail, with <python string> as key
+           and <Rhino.Geometry.Curve> as value
+        stenosis_loacation, effect_region, percentage: <python float>, just as their names
+        basline_radii_major: <python list of float> the baseline radius of major vessel at different
+           position parameter reference points.
+        baseline_radii_middle, baseline_radii_small, baseline_radii_minor: <python list of float>
+           the baseline radius of different grade for non-major vessels at different position 
+           parameter reference points
+        dedault_position_param: <python list of float> the default position paramter for non-major branches 
     """    
-    # Iterate through branch and created pipe brep
+    nonMajorMatchRadii = {'branch_4':baseline_radii_middle, 'branch_5':baseline_radii_middle, 
+    'branch_2':baseline_radii_small, 'branch_3':baseline_radii_small, 
+    'branch_1':baseline_radii_minor}
+
+    # Iterate through branch and created pipe Brep
     vesselBreps = {}
     for branch_identifier in list(reconstructedCurves.keys()):
         # Get the positions_param and positions_ra7dii under different settings
         if branch_identifier == 'major':
-            positions_param, positions_radii = GenerateStenosis(baseline_radii_major, 
-                stenosis_location, effect_region, percentage)
+            # -- GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major)
+            positions_param, positions_radii = GenerateStenosis(stenosis_location, 
+                effect_region, percentage,baseline_radii_major)
         else:
             positions_param = dedault_position_param
-            positions_radii = nonMajorMatchRadii
+            positions_radii = nonMajorMatchRadii[branch_identifier]
         # Construct the Pipe brep
         vesselBreps[branch_identifier] = AddPipe(reconstructedCurves[branch_identifier], positions_param, positions_radii)
 
@@ -173,12 +151,12 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3, effect_region
         branchBrep = vesselBreps[nonMajorIdentifier]
         # https://developer.rhino3d.com/5/api/RhinoCommon/html/M_Rhino_Geometry_Brep_Split.htm
         # https://searchcode.com/total-file/16042741/
-
         tol = scriptcontext.doc.ModelAbsoluteTolerance
         cuttedBrep = branchBrep.Split(majorBrep, tol)
         keptBrep = cuttedBrep[0]
         # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Mesh_CreateFromBrep_1.htm
         vesselMeshes[nonMajorIdentifier] = Rhino.Geometry.Mesh.CreateFromBrep(keptBrep, defaultMeshParams)
+    return vesselMeshes
 
 def DivideCurve(curveObject, segmentNum, return_points=True):
     """Helper function customized from the following link
@@ -224,7 +202,7 @@ def StenosisSphere(curveObject, stenosis_location, segmentNum=100, radius=1, cre
         return stenosisMesh
     return stenosisSphere
 
-def startPointSphere(curveObject, radius=1, create_mesh=True):
+def StartPointSphere(curveObject, radius=1, create_mesh=True):
     """
     Create a sphere at the start point on the vessel curve.
     Inputs:
@@ -246,6 +224,9 @@ def startPointSphere(curveObject, radius=1, create_mesh=True):
 
 
 if( __name__ == "__main__" ):
+    import os
+    from configureOperationIO import LoadCurveFromTxt
+
     baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
     reconstructedCurves = LoadCurveFromTxt(baseDir, defaultBranchesNum)

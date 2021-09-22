@@ -1,11 +1,9 @@
 __author__ = "zijung@umich.edu"
 __version__ = "2021.09.21"
 
-
 import Rhino
 import scriptcontext
 import System
-
 
 def AddLayer(layerName='Synthetic', layerColor=System.Drawing.Color.Black):
     """

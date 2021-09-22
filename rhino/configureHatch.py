@@ -5,22 +5,28 @@ import System
 import Rhino
 import scriptcontext
 
-def HatchMeshProjection(targetMesh, receiveScreenPlane, viewport, colorCode, alpha=255):
+from configureAngulation import offsetPlane
+
+def HatchProjection(targetMesh, receiveScreenPlane, viewport, colorCode, alpha=255, offset=0):
     """
     inputs:
         receiveScreenPlane: <Rhino.Geometry.Plane>, plane that receive the outline
         viewport: <Rhino.Display.RhinoViewport>, the viewport info that provides the outline direction.
         targetMesh: <Rhino.Geometry.Mesh>, mesh for outline casting
         colorCode, alpha: See function CreateColor
+        offset: <python float>, if not default, the receiveScreenPlane will be offset by the number on
+           Z axis, and the hatch would happened on the offseted plane.
     """
     # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Mesh_GetOutlines_1.htm
     # https://developer.rhino3d.com/api/RhinoCommon/html/T_Rhino_DocObjects_ViewportInfo.htm
     activeViewportInfor = Rhino.DocObjects.ViewportInfo(viewport)
+    if offset != 0:
+        receiveScreenPlane = offsetPlane(receiveScreenPlane, offset)
     meshOutline = targetMesh.GetOutlines(activeViewportInfor, receiveScreenPlane)
     AddHatch(meshOutline, colorCode, alpha)
 
 def AddHatch(curveObjects, colorCode, alpha, index=0):
-    """
+    """Helper function
     Creates hatch objects for closed planar curves
     Inputs: 
         curveObjectes: <Rhino.Geometry.Curve> closed planar curves that defines the boundary of the hatch objects
@@ -51,7 +57,7 @@ def AddHatch(curveObjects, colorCode, alpha, index=0):
     # Rhino.Display.DisplayPipeline.DrawHatch(hatch)
 
 def CreateColor(colorCode, alpha):
-    """
+    """Helper function
     Inputs:
         colorCode: list of three <python int>. Valid values are from 0 to 255.
             [0] for the red component. 
