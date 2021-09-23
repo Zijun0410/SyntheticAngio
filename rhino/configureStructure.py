@@ -6,7 +6,7 @@ import Rhino
 import System
 import random # For random generator
 
-def AddPipe(curve_object, parameters, radii, blend_type=0, cap=1, fit=False):
+def AddPipe(curve_object, parameters, radii, blend_type=1, cap=1, fit=True):
     # An modificatiioin for the code from the following source
     # https://github.com/mcneel/rhinoscriptsyntax/blob/rhino-6.x/Scripts/rhinoscript/surface.py
 
@@ -14,7 +14,10 @@ def AddPipe(curve_object, parameters, radii, blend_type=0, cap=1, fit=False):
     Parameters:
         curve_object: <Rhino.Geometry.Curve> the rail curve
         parameters, radii: ([float, ...]), list of radius values at normalized curve parameters
-        blend_type: (int, optional), 0(local) or 1(global)
+        blend_type: (int, optional), 0(local) or 1(global), The shape blending. 
+           Local (pipe radius stays constant at the ends and changes more rapidly in the middle)
+           Global (radius is linearly blended from one end to the other, creating pipes that 
+                taper from one radius to the other)
         cap: (int, optional), 0(none), 1(flat), 2(round)
         fit: (bool, optional), attempt to fit a single surface
     Returns:
@@ -31,7 +34,7 @@ def AddPipe(curve_object, parameters, radii, blend_type=0, cap=1, fit=False):
     breps = Rhino.Geometry.Brep.CreatePipe(curve_object, parameters, radii, blend_type, cap, fit, abs_tol, ang_tol)
     # rc = [scriptcontext.doc.Objects.AddBrep(brep) for brep in breps]
     # scriptcontext.doc.Views.Redraw()
-    return breps
+    return breps[0]
 
 
 def get_radii(target_point, positions, baseline_radii_major):
@@ -65,7 +68,8 @@ def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radi
 
     ref_point = len(baseline_radii_major)
     positions_param_prep = list(range(0,ref_point,1))
-    positions_param = [round(i/(ref_point-1),2) for i in positions_param_prep]
+    # Becareful for using division
+    positions_param = [round(float(i)/(ref_point-1),2) for i in positions_param_prep]
     
     stenosis_region_start = stenosis_location - effect_region
     stenosis_region_end = stenosis_location + effect_region
@@ -141,11 +145,12 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3, effect_region
     # Cut all the small branches with the main branch and turn the output into a mesh
     majorBrep = vesselBreps['major']
     allIdentifiers = list(vesselBreps.keys())
-    nonMajorIdentifiers = allIdentifiers.remove('major')
-
+    allIdentifiers.remove('major')
+    nonMajorIdentifiers = allIdentifiers[:] # notice: python 2.x does not have the list.copy() method
     defaultMeshParams = Rhino.Geometry.MeshingParameters.Default 
     vesselMeshes = {}
-    vesselMeshes['major'] = Rhino.Geometry.Mesh.CreateFromBrep(majorBrep, defaultMeshParams)
+    meshArrayMajor = Rhino.Geometry.Mesh.CreateFromBrep(majorBrep, defaultMeshParams)
+    vesselMeshes['major'] = meshArrayMajor[0]
 
     for nonMajorIdentifier in nonMajorIdentifiers:
         branchBrep = vesselBreps[nonMajorIdentifier]
@@ -155,7 +160,9 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3, effect_region
         cuttedBrep = branchBrep.Split(majorBrep, tol)
         keptBrep = cuttedBrep[0]
         # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Mesh_CreateFromBrep_1.htm
-        vesselMeshes[nonMajorIdentifier] = Rhino.Geometry.Mesh.CreateFromBrep(keptBrep, defaultMeshParams)
+        meshArrayNonMajor = Rhino.Geometry.Mesh.CreateFromBrep(keptBrep, defaultMeshParams)
+        vesselMeshes[nonMajorIdentifier] = meshArrayNonMajor[0]
+
     return vesselMeshes
 
 def DivideCurve(curveObject, segmentNum, return_points=True):
@@ -226,7 +233,6 @@ def StartPointSphere(curveObject, radius=1, create_mesh=True):
 if( __name__ == "__main__" ):
     import os
     from configureOperationIO import LoadCurveFromTxt
-
     baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
     reconstructedCurves = LoadCurveFromTxt(baseDir, defaultBranchesNum)

@@ -24,10 +24,10 @@ def main(baseDir, defaultBranchesNum, debug=False):
         
         #-# Get meta data of a record
         fileName = metaData['FileName'][iRecord]
-        positionerPrimaryAngle = metaData['PositionerPrimaryAngle'][iRecord]
-        positionerSecondaryAngle = metaData['PositionerSecondaryAngle'][iRecord]
-        distanceSourceToDetector = metaData['DistanceSourceToDetector'][iRecord]
-        distanceSourceToPatient = metaData['DistanceSourceToPatient'][iRecord]
+        positionerPrimaryAngle = float(metaData['PositionerPrimaryAngle'][iRecord])
+        positionerSecondaryAngle = float(metaData['PositionerSecondaryAngle'][iRecord])
+        distanceSourceToDetector = float(metaData['DistanceSourceToDetector'][iRecord])
+        distanceSourceToPatient = float(metaData['DistanceSourceToPatient'][iRecord])
         
         #-# Value Check
         # TODO: Get the mean value 

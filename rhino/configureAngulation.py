@@ -29,7 +29,8 @@ def ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle,
     point_z_plus = Rhino.Geometry.Point3d(isocenter_x,isocenter_y,isocenter_z+1)
     primaryRotationAxis = point_z_plus - isocenter
     #-# Transform Rotation(double angleRadians,Vector3d rotationAxis,Point3d rotationCenter)
-    primary_angle_rotation = Rhino.Geometry.Transform.Rotation(math.pi*positionerPrimaryAngle/180, primaryRotationAxis, isocenter)
+    primary_angle_rotation = Rhino.Geometry.Transform.Rotation(
+        math.radians(positionerPrimaryAngle), primaryRotationAxis, isocenter)
     reference_axis.Transform(primary_angle_rotation)
     
     ## Construct the YpZ plane with three points
@@ -37,7 +38,8 @@ def ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle,
     
     ## Secondary Rotation Setup
     secondaryRotationAxis = YpZ_plane.ZAxis
-    seconday_angle_rotation = Rhino.Geometry.Transform.Rotation(math.pi*positionerSecondaryAngle/180, secondaryRotationAxis, isocenter)
+    seconday_angle_rotation = Rhino.Geometry.Transform.Rotation(
+        math.radians(positionerSecondaryAngle), secondaryRotationAxis, isocenter)
     reference_axis.Transform(seconday_angle_rotation)
     
     ## Construct Visualzation plane with norm vector and Origin
