@@ -96,7 +96,7 @@ def ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient,
     receiveScreenSurface.Transform(transform)
     receiveScreenBrep = receiveScreenSurface.ToBrep()
     receiveScreenMesh = Rhino.Geometry.Mesh.CreateFromBrep(receiveScreenBrep, Rhino.Geometry.MeshingParameters.Default)
-    return receiveScreenPlane, receiveScreenMesh
+    return receiveScreenPlane, receiveScreenMesh[0]
 
 def viewportByName(viewName=None):
     """ Helper function

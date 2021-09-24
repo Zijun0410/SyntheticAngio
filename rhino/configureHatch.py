@@ -22,25 +22,26 @@ def HatchProjection(targetMesh, receiveScreenPlane, viewport, colorCode, alpha=2
     activeViewportInfor = Rhino.DocObjects.ViewportInfo(viewport)
     if offset != 0:
         receiveScreenPlane = offsetPlane(receiveScreenPlane, offset)
-    meshOutline = targetMesh.GetOutlines(activeViewportInfor, receiveScreenPlane)
-    AddHatch(meshOutline, colorCode, alpha)
+    meshOutlines = targetMesh.GetOutlines(activeViewportInfor, receiveScreenPlane)
+    meshOutline = meshOutlines[0].ToPolylineCurve()
+    AddHatch(meshOutline, receiveScreenPlane, colorCode, alpha)
 
-def AddHatch(curveObjects, colorCode, alpha, index=0):
+def AddHatch(curveObjects, receiveScreenPlane, colorCode, alpha, index=0):
     """Helper function
     Creates hatch objects for closed planar curves
     Inputs: 
-        curveObjectes: <Rhino.Geometry.Curve> closed planar curves that defines the boundary of the hatch objects
+        curveObjectes: <Rhino.Geometry.PolylineCurve> closed planar curves that defines the boundary of the hatch objects
         index: <python int> The fill type of a hatch pattern.
                0 = solid, uses object color
                1 = lines, uses pattern file definition
                2 = gradient, uses fill color definition
         colorCode, alpha: See function CreateColor
     """
-    hatches = Rhino.Geometry.Hatch.Create(curveObjects, index=index, rotation=0, scale=1)
+    hatches = Rhino.Geometry.Hatch.Create(curveObjects, index, 0, 1)
     #-# Setting up color gradient object
     # Rhino.Display.ColorStop(<System.Drawing.Color>, <python float>)
-    ColorStops = [Rhino.Display.ColorStop(CreateColor(colorCode), 0), 
-        Rhino.Display.ColorStop(CreateColor(colorCode), 1)]
+    ColorStops = [Rhino.Display.ColorStop(CreateColor(colorCode, alpha), 0), 
+        Rhino.Display.ColorStop(CreateColor(colorCode, alpha), 1)]
     colorGradient = Rhino.Display.ColorGradient()
     colorGradient.SetColorStops(ColorStops)
     colorGradient.StartPoint = receiveScreenPlane.Origin

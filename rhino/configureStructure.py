@@ -34,10 +34,13 @@ def AddPipe(curve_object, parameters, radii, blend_type=1, cap=1, fit=True):
     breps = Rhino.Geometry.Brep.CreatePipe(curve_object, parameters, radii, blend_type, cap, fit, abs_tol, ang_tol)
     # rc = [scriptcontext.doc.Objects.AddBrep(brep) for brep in breps]
     # scriptcontext.doc.Views.Redraw()
+    if len(breps)==0:
+        print('Error')
     return breps[0]
 
 
 def get_radii(target_point, positions, baseline_radii_major):
+    # TODO: Sometime the ref_radii is not there
     for index, pos in enumerate(positions):
         if pos <= target_point < positions[index+1]:
             relative_indice = (index, index+1)
@@ -198,16 +201,17 @@ def StenosisSphere(curveObject, stenosis_location, segmentNum=100, radius=1, cre
         create_mesh: <python bool, optional> If omitted or True, return <Rhino.Geometry.Mesh>, 
             otherwise return <Rhino.Geometry.Sphere>
     Outputs:
-        stenosisMesh or stenosisSphere depend on the input
+        stenosisMesh or stenosisBrep depend on the input
     """
     dividedPoints = DivideCurve(curveObject, segmentNum)
-    stenosisPoint = dividedPoints[int(dividedPoints*stenosis_location)]
+    stenosisPoint = dividedPoints[int(segmentNum*stenosis_location)]
     stenosisSphere = Rhino.Geometry.Sphere(stenosisPoint, radius)
+    stenosisBrep = stenosisSphere.ToBrep()
     if create_mesh:
         defaultMeshParams = Rhino.Geometry.MeshingParameters.Default
-        stenosisMesh = Rhino.Geometry.Mesh.CreateFromBrep(majorBrep, defaultMeshParams)
-        return stenosisMesh
-    return stenosisSphere
+        stenosisMesh = Rhino.Geometry.Mesh.CreateFromBrep(stenosisBrep, defaultMeshParams)
+        return stenosisMesh[0]
+    return stenosisBrep
 
 def StartPointSphere(curveObject, radius=1, create_mesh=True):
     """
@@ -223,11 +227,12 @@ def StartPointSphere(curveObject, radius=1, create_mesh=True):
     """
     pointAtStart = curveObject.PointAtStart
     startPointSphere = Rhino.Geometry.Sphere(pointAtStart, radius)
+    startPointBrep = startPointSphere.ToBrep()
     if create_mesh:
         defaultMeshParams = Rhino.Geometry.MeshingParameters.Default
-        startPointMesh = Rhino.Geometry.Mesh.CreateFromBrep(majorBrep, defaultMeshParams)
-        return startPointMesh
-    return startPointSphere    
+        startPointMesh = Rhino.Geometry.Mesh.CreateFromBrep(startPointBrep, defaultMeshParams)
+        return startPointMesh[0]
+    return startPointBrep    
 
 
 if( __name__ == "__main__" ):

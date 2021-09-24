@@ -29,6 +29,10 @@ def main(baseDir, defaultBranchesNum, debug=False):
         distanceSourceToDetector = float(metaData['DistanceSourceToDetector'][iRecord])
         distanceSourceToPatient = float(metaData['DistanceSourceToPatient'][iRecord])
         
+        #-# Create path if not exist
+        if not os.path.exists(os.path.join(baseDir, fileName)):
+            os.makedirs(os.path.join(baseDir, fileName))
+        
         #-# Value Check
         # TODO: Get the mean value 
         if distanceSourceToDetector == -1:
@@ -63,7 +67,7 @@ def main(baseDir, defaultBranchesNum, debug=False):
         # -- HatchProjection(targetMesh, receiveScreenPlane, viewport, colorCode, alpha=255, offset=0)
         HatchProjection(receiveScreenMesh, receiveScreenPlane, viewport, whiteRGB, offset=-1)
         #-# Project the stnosis point and hatch as black
-        blackRGB = (255, 255, 255)
+        blackRGB = (0, 0, 0)
         # -- StenosisSphere(curveObject, stenosis_location, segmentNum=100, radius=1, create_mesh=True)
         stenosisMesh = StenosisSphere(reconstructedCurves['major'], stenosis_location)
         HatchProjection(stenosisMesh, receiveScreenPlane, viewport, blackRGB)
@@ -80,7 +84,7 @@ def main(baseDir, defaultBranchesNum, debug=False):
         HatchProjection(receiveScreenMesh, receiveScreenPlane, viewport, whiteRGB, offset=-1)
         #-# Project the start point of major branch and hatch as black
         startPointMesh = StartPointSphere(reconstructedCurves['major'])
-        HatchProjection(stenosisMesh, receiveScreenPlane, viewport, blackRGB)
+        HatchProjection(startPointMesh, receiveScreenPlane, viewport, blackRGB)
         #-# Save to File
         CaptureViewToFile(os.path.join(baseDir, fileName, 'start.png'), viewport)
         if debug:
@@ -98,7 +102,7 @@ def main(baseDir, defaultBranchesNum, debug=False):
             vesselMesh = vesselMeshes[vessel_identifier]
             HatchProjection(vesselMesh, receiveScreenPlane, viewport, blackRGB)
             #-# Capture the file and save to folder
-            filePath = os.path.join(baseDir, fileName, '.png'.format(identifier))
+            filePath = os.path.join(baseDir, fileName, '{}.png'.format(vessel_identifier))
             outFilePath = CaptureViewToFile(filePath, viewport)
             if debug:
                 userInput = GetString(message="Check Output for Vessel Mesh: ")
