@@ -141,7 +141,7 @@ def setView(lightVector, receiveScreenPlane, distanceSourceToPatient,
     """
     # Set the 'Perspective' viewport
     cameraPosition = receiveScreenPlane.Origin + receiveScreenPlane.ZAxis*distanceSourceToPatient/6
-    cameraUpDirection = -receiveScreenPlane.XAxis
+    cameraUpDirection = 0*receiveScreenPlane.XAxis
     view_port = viewportByName('Perspective')
     view_port.SetCameraTarget(Rhino.Geometry.Point3d.Add(cameraPosition, lightVector), False)
     view_port.SetCameraDirection(lightVector, False)
@@ -155,10 +155,7 @@ if( __name__ == "__main__" ):
     
     visualizatioinPlane, lightVector = ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle)
 
-
     receiveScreenPlane, receiveScreenMesh = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
         distanceSourceToDetector, planeSize)
 
     viewport = setView(lightVector, receiveScreenPlane, distanceSourceToPatient)
-
-    outFilePath = CaptureView(filePath, viewport, 1100, 1100)

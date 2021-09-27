@@ -71,7 +71,7 @@ def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radi
 
     ref_point = len(baseline_radii_major)
     positions_param_prep = list(range(0,ref_point,1))
-    # Becareful for using division
+    # Be careful when using division in python 2.7
     positions_param = [round(float(i)/(ref_point-1),2) for i in positions_param_prep]
     
     stenosis_region_start = stenosis_location - effect_region
@@ -107,10 +107,10 @@ def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radi
 
     return positions_param_out, updated_radii_major
 
-def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3, effect_region=0.02, percentage=0.8,
-    baseline_radii_major=[1.8,1.6,1.5,1.45,1.4,1.35,1.3,1.25,1.1,0.9,0.7,0.5,0.3],
-    baseline_radii_middle=[0.78, 0.69, 0.51, 0.21], baseline_radii_small=[0.74, 0.6, 0.47, 0.17],
-    baseline_radii_minor=[0.62, 0.46, 0.45, 0.16], dedault_position_param=[0, 0.3, 0.63, 1]):
+def GenerateVesselMesh(reconstructedCurves, stenosis_flag=1, stenosis_location=0.3, effect_region=0.02, 
+    percentage=0.8, baseline_radii_major=[1.8,1.6,1.5,1.45,1.4,1.35,1.3,1.25,1.1,0.9,0.7,0.5,0.3],
+    baseline_radii_middle=[0.78,0.69,0.51,0.21], baseline_radii_small=[0.74,0.6,0.47,0.17],
+    baseline_radii_minor=[0.62,0.46,0.45,0.16], dedault_position_param=[0,0.3,0.63,1]):
     """
     Generate meshes based on vessel curves rail by 
         1. create pipe brep from the vessel curve rail, 
@@ -119,6 +119,7 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3, effect_region
     Inputs:
         reconstructedCurves: <python dict>, stores the vessel curve rail, with <python string> as key
            and <Rhino.Geometry.Curve> as value
+        stenosis_flag: <python boolen>, generate major vessel stenosis when set True.
         stenosis_loacation, effect_region, percentage: <python float>, just as their names
         basline_radii_major: <python list of float> the baseline radius of major vessel at different
            position parameter reference points.
@@ -128,17 +129,22 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3, effect_region
         dedault_position_param: <python list of float> the default position paramter for non-major branches 
     """    
     nonMajorMatchRadii = {'branch_4':baseline_radii_middle, 'branch_5':baseline_radii_middle, 
-    'branch_2':baseline_radii_small, 'branch_3':baseline_radii_small, 
-    'branch_1':baseline_radii_minor}
+    'branch_2':baseline_radii_small, 'branch_3':baseline_radii_small, 'branch_1':baseline_radii_minor}
 
     # Iterate through branch and created pipe Brep
     vesselBreps = {}
     for branch_identifier in list(reconstructedCurves.keys()):
         # Get the positions_param and positions_ra7dii under different settings
         if branch_identifier == 'major':
-            # -- GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major)
-            positions_param, positions_radii = GenerateStenosis(stenosis_location, 
-                effect_region, percentage,baseline_radii_major)
+            if stenosis:
+                # -- GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major)
+                positions_param, positions_radii = GenerateStenosis(stenosis_location, 
+                    effect_region, percentage, baseline_radii_major)
+            else:
+                # No stenosis
+                positions_radii = baseline_radii_major
+                ref_point = len(baseline_radii_major)
+                positions_param = [round(float(i)/(ref_point-1),2) for i in list(range(0,ref_point,1))]
         else:
             positions_param = dedault_position_param
             positions_radii = nonMajorMatchRadii[branch_identifier]

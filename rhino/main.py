@@ -34,17 +34,18 @@ def main(baseDir, defaultBranchesNum, debug=False):
             os.makedirs(os.path.join(baseDir, fileName))
         
         #-# Value Check
-        # TODO: Get the mean value 
+        # if value does not exist (-1 by defalut), then set as the mean value
+        # Code in noteboook/MetaData_Handling.ipynb
         if distanceSourceToDetector == -1:
-            distanceSourceToDetector = 1000
+            distanceSourceToDetector = 1040.3
         if distanceSourceToPatient == -1:
-            distanceSourceToDetector = 740
+            distanceSourceToDetector = 776.5
         
         #-# Generate Meshes
         reconstructedCurves = LoadCurveFromTxt(baseDir, defaultBranchesNum)
 
         stenosis_location, effect_region, percentage = RandomStenosisGenerator()
-        # Random movement generator TTODO
+        # Random movement generator TODO
         # reconstructedCurves = HeartMovementGenerator(reconstructedCurves)
         
         # -- vesselMeshes is a <python dict> with branch identifier as key,
