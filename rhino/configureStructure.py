@@ -265,8 +265,8 @@ def CrateContourCurves(vesselBrep, receiveScreenPlane, interval=0.15):
     contourCurves = vesselBrep.CreateContourCurves(vesselBrep, base_point, end_point, interval)
     # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Curve_ProjectToBrep.htm
     # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Curve_ProjectToPlane.htm
-    hicontourCurves = [Rhino.Geometry.Curve.ProjectToPlane(curve,receiveScreenPlane) for curve in contourCurves]
-    return hicontourCurves
+    #contourCurves = [Rhino.Geometry.Curve.ProjectToPlane(curve,receiveScreenPlane) for curve in contourCurves]
+    return contourCurves
 
 if( __name__ == "__main__" ):
     import os

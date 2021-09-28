@@ -92,7 +92,7 @@ def LoadCurveFromTxt(baseDir, defaultBranches):
     return reconstructedCurves
 
 
-def CaptureViewToFile(filePath, viewport, width=1100, height=1100, displayMode='Shaded', transparent=True):
+def CaptureViewToFile(filePath, viewport, width=1896, height=1127, displayMode='Shaded', transparent=True):
 
     """
     Capture a Viewport to a PNG file path.

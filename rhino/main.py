@@ -6,7 +6,8 @@ from configureStructure import RandomStenosisGenerator, GenerateVesselMesh, Sten
 from configureAngulation import ConfigAngulation, ConfigreceiveScreen, setView
 from configureLayer import AddLayer, DeleteLayerObject
 from configureHatch import HatchProjection, AddHatch
-from configureOperationIO import LoadCurveFromTxt, ReadMetaData, GetString, CaptureViewToFile
+from configureOperationIO import LoadCurveFromTxt, ReadMetaData, GetString, CaptureViewToFile, saveStenosisInfor
+import rhinoscriptsyntax as rs
 
 # Some reference page 
 # https://github.com/mcneel/rhinoscriptsyntax/tree/rhino-6.x/Scripts/rhinoscript
@@ -60,8 +61,9 @@ def main(baseDir, defaultBranchesNum, batch_num, debug=False):
             stenosis_location, effect_region, percentage = 0, 0, 0
 
         # Update Stenosis Infor Saver
-        saveInfor[(str(iRecord), fileName)] = [stenosis_flag, stenosis_location, effect_region, percentage,
+        infor_list = [stenosis_flag, stenosis_location, effect_region, percentage,
             distanceSourceToDetector, distanceSourceToDetector, positionerPrimaryAngle, positionerSecondaryAngle]
+        saveInfor[(str(iRecord), fileName)] = [str(i) for i in infor_list]
 
         # -- vesselMeshes is a <python dict> with branch identifier as key,
         #    and <Rhino.Geometry.Mesh> as values
@@ -136,21 +138,24 @@ def main(baseDir, defaultBranchesNum, batch_num, debug=False):
             vesselBrep = vesselBreps[vessel_identifier]
             contourCurves = CrateContourCurves(vesselBrep, receiveScreenPlane)            
             # -- AddHatch(curveObjects, receiveScreenPlane, colorCode, alpha)
-            AddHatch(contourCurves, receiveScreenPlane, blackRGB, alpha=9)
+            AddHatch(contourCurves, receiveScreenPlane, blackRGB, alpha=10)
             #-# Capture the file and save to folder
             filePath = os.path.join(saveDir, '{}_contour.png'.format(vessel_identifier))
-            outFilePath = CaptureViewToFile(filePath, viewport)
             if debug:
                 userInput = GetString(message="Check Output for Contour Hatch: ")
                 if userInput == "Stop": # else just continue
                     return
+            # C:\Users\gaozj\Desktop\Angio\SyntheticAngio\ViewCapture20210928_005204001.jpg.png
+            cmd = " _Width 1896 _Height 1127 _TransparentBackgroud _Yes _Enter"
+            rs.Command("-ViewCaptureToFile " + chr(34) + filePath + chr(34)+ cmd)
+            # outFilePath = CaptureViewToFile(filePath, viewport)
             #-# Remove layer object from layer
             DeleteLayerObject() 
-
+        break
     saveStenosisInfor(saveInfor, inforSaveDir)
 
 if( __name__ == "__main__" ):
     baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
     batch_num = '1'
-    main(baseDir, defaultBranchesNum, batch_num, debug=True)
+    main(baseDir, defaultBranchesNum, batch_num, debug=False)
