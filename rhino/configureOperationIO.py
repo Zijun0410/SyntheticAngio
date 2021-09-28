@@ -138,3 +138,25 @@ def CaptureViewToFile(filePath, viewport, width=1100, height=1100, displayMode='
     System.Drawing.Bitmap.Save(pic, filePath)
 
     return filePath
+
+
+def saveStenosisInfor(saveInfor, inforSaveDir, csvName='stnosis_infor.csv'):
+    """
+    Save the random generated stenosis information to file
+    Inputs:
+        saveInfor: <python dict> with key of (index, fileName) and value of a 
+            <python list> that contains [stenosis_flag, stenosis_location, 
+            effect_region, percentage, distanceSourceToDetector, 
+            distanceSourceToDetector, positionerPrimaryAngle, positionerSecondaryAngle]
+        inforSaveDir: <python string>, the directory of saving the information
+        csvName: <python string>, the name of the saved file
+    """
+    headline = ['index', 'fileName', 'stenosis_flag', 'stenosis_location', 
+            'effect_region', 'percentage', 'distanceSourceToDetector', 
+            'distanceSourceToDetector', 'positionerPrimaryAngle', 'positionerSecondaryAngle']
+    with open(os.path.join(inforSaveDir,csvName), 'w') as fileHandle:
+        fileHandle.write(','.join(headline) + '\n')
+        for identifier in list(saveInfor.keys()):
+            fileHandle.write(','.join(identifier))
+            fileHandle.write(','.join(saveInfor[identifier])+'\n')
+            

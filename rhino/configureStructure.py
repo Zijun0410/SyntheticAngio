@@ -1,4 +1,4 @@
-__author__ = "gaozj"
+__author__ = "zijung@umich.edu"
 __version__ = "2021.09.16"
 
 import scriptcontext
@@ -107,8 +107,9 @@ def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radi
 
     return positions_param_out, updated_radii_major
 
-def GenerateVesselMesh(reconstructedCurves, stenosis_flag=1, stenosis_location=0.3, effect_region=0.02, 
-    percentage=0.8, baseline_radii_major=[1.8,1.6,1.5,1.45,1.4,1.35,1.3,1.25,1.1,0.9,0.7,0.5,0.3],
+def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3, 
+    effect_region=0.02, percentage=0.8, stenosis_flag=1, 
+    baseline_radii_major=[1.8,1.6,1.5,1.45,1.4,1.35,1.3,1.25,1.1,0.9,0.7,0.5,0.3],
     baseline_radii_middle=[0.78,0.69,0.51,0.21], baseline_radii_small=[0.74,0.6,0.47,0.17],
     baseline_radii_minor=[0.62,0.46,0.45,0.16], dedault_position_param=[0,0.3,0.63,1]):
     """
@@ -120,6 +121,7 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_flag=1, stenosis_location=0
         reconstructedCurves: <python dict>, stores the vessel curve rail, with <python string> as key
            and <Rhino.Geometry.Curve> as value
         stenosis_flag: <python boolen>, generate major vessel stenosis when set True.
+        return_brep: <python boolen>, return brep instead of mesh when set True.   
         stenosis_loacation, effect_region, percentage: <python float>, just as their names
         basline_radii_major: <python list of float> the baseline radius of major vessel at different
            position parameter reference points.
@@ -127,16 +129,19 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_flag=1, stenosis_location=0
            the baseline radius of different grade for non-major vessels at different position 
            parameter reference points
         dedault_position_param: <python list of float> the default position paramter for non-major branches 
+    Outputs:
+        vesselBreps and vesselMeshes: <python dict> with key of identifier and value of <Rhino.Geometry.Brep>
+           or <Rhino.Geometry.Mesh>
     """    
     nonMajorMatchRadii = {'branch_4':baseline_radii_middle, 'branch_5':baseline_radii_middle, 
     'branch_2':baseline_radii_small, 'branch_3':baseline_radii_small, 'branch_1':baseline_radii_minor}
 
     # Iterate through branch and created pipe Brep
-    vesselBreps = {}
+    preVesselBreps = {}
     for branch_identifier in list(reconstructedCurves.keys()):
         # Get the positions_param and positions_ra7dii under different settings
         if branch_identifier == 'major':
-            if stenosis:
+            if stenosis_flag:
                 # -- GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major)
                 positions_param, positions_radii = GenerateStenosis(stenosis_location, 
                     effect_region, percentage, baseline_radii_major)
@@ -149,11 +154,14 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_flag=1, stenosis_location=0
             positions_param = dedault_position_param
             positions_radii = nonMajorMatchRadii[branch_identifier]
         # Construct the Pipe brep
-        vesselBreps[branch_identifier] = AddPipe(reconstructedCurves[branch_identifier], positions_param, positions_radii)
+        preVesselBreps[branch_identifier] = AddPipe(reconstructedCurves[branch_identifier], positions_param, positions_radii)
 
-    # Cut all the small branches with the main branch and turn the output into a mesh
-    majorBrep = vesselBreps['major']
-    allIdentifiers = list(vesselBreps.keys())
+    #-# Prepare to update the vessel breps and the mesh to be created    
+    majorBrep = preVesselBreps['major']
+    vesselBreps = {}
+    vesselBreps['major'] = majorBrep
+
+    allIdentifiers = list(preVesselBreps.keys())
     allIdentifiers.remove('major')
     nonMajorIdentifiers = allIdentifiers[:] # notice: python 2.x does not have the list.copy() method
     defaultMeshParams = Rhino.Geometry.MeshingParameters.Default 
@@ -161,18 +169,21 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_flag=1, stenosis_location=0
     meshArrayMajor = Rhino.Geometry.Mesh.CreateFromBrep(majorBrep, defaultMeshParams)
     vesselMeshes['major'] = meshArrayMajor[0]
 
+    #-# Trim uncessary parts from the small branches by intercecting the main branch 
+    #   and turn the output into a mesh
     for nonMajorIdentifier in nonMajorIdentifiers:
-        branchBrep = vesselBreps[nonMajorIdentifier]
+        branchBrep = preVesselBreps[nonMajorIdentifier]
         # https://developer.rhino3d.com/5/api/RhinoCommon/html/M_Rhino_Geometry_Brep_Split.htm
         # https://searchcode.com/total-file/16042741/
         tol = scriptcontext.doc.ModelAbsoluteTolerance
         cuttedBrep = branchBrep.Split(majorBrep, tol)
         keptBrep = cuttedBrep[0]
+        vesselBreps[nonMajorIdentifier] = keptBrep
         # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Mesh_CreateFromBrep_1.htm
         meshArrayNonMajor = Rhino.Geometry.Mesh.CreateFromBrep(keptBrep, defaultMeshParams)
         vesselMeshes[nonMajorIdentifier] = meshArrayNonMajor[0]
 
-    return vesselMeshes
+    return vesselBreps, vesselMeshes
 
 def DivideCurve(curveObject, segmentNum, return_points=True):
     """Helper function customized from the following link
@@ -240,6 +251,22 @@ def StartPointSphere(curveObject, radius=1, create_mesh=True):
         return startPointMesh[0]
     return startPointBrep    
 
+def CrateContourCurves(vesselBrep, receiveScreenPlane, interval=0.15):
+    """
+    Given a vesselBrep, create contour curves that are parallel to the receiveScreenPlane
+    Inputs:
+        vesselBrep: <Rhino.Geometry.Brep> the brep to contour
+        receiveScreenPlane: <Rhino.Geometry.Plane> slicing plane for generatinig the base
+          point and end point (that gives the contour norm direction).
+        interval: <python float>, distance between two contours
+    """
+    base_point = receiveScreenPlane.Origin
+    end_point = receiveScreenPlane.Origin + receiveScreenPlane.ZAxis*1500
+    contourCurves = vesselBrep.CreateContourCurves(vesselBrep, base_point, end_point, interval)
+    # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Curve_ProjectToBrep.htm
+    # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Curve_ProjectToPlane.htm
+    hicontourCurves = [Rhino.Geometry.Curve.ProjectToPlane(curve,receiveScreenPlane) for curve in contourCurves]
+    return hicontourCurves
 
 if( __name__ == "__main__" ):
     import os

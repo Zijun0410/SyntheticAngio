@@ -45,7 +45,7 @@ def AddHatch(curveObjects, receiveScreenPlane, colorCode, alpha, index=0):
     colorGradient = Rhino.Display.ColorGradient()
     colorGradient.SetColorStops(ColorStops)
     colorGradient.StartPoint = receiveScreenPlane.Origin
-    colorGradient.EndPoint = receiveScreenPlane.Origin + receiveScreenPlane.ZAxis
+    colorGradient.EndPoint = receiveScreenPlane.Origin + receiveScreenPlane.XAxis
     colorGradient.GradientType = Rhino.Display.GradientType.Linear
     for hatch in hatches:
         # Rhino.Geometry.Hatch.SetGradientFill(<Rhino.Display.ColorGradient>)
