@@ -2,11 +2,13 @@ __author__ = "zijung@umich.edu"
 __version__ = "2021.09.20"
 
 import os
+
+
 from configureStructure import RandomStenosisGenerator, GenerateVesselMesh, StenosisSphere, StartPointSphere, CrateContourCurves
 from configureAngulation import ConfigAngulation, ConfigreceiveScreen, setView
 from configureLayer import AddLayer, DeleteLayerObject
 from configureHatch import HatchProjection, AddHatch
-from configureOperationIO import LoadCurveFromTxt, ReadMetaData, GetString, CaptureViewToFile, saveStenosisInfor
+from configureOperationIO import LoadCurveFromTxt, ReadMetaData, GetString, CaptureViewToFile, saveStenosisInfor, uniformResult
 import rhinoscriptsyntax as rs
 
 # Some reference page 
@@ -52,31 +54,44 @@ def main(baseDir, defaultBranchesNum, batch_num, debug=False):
         reconstructedCurves = LoadCurveFromTxt(baseDir, defaultBranchesNum)
         #-# Generate Stenosis
         # TODO: Change stenosis_flag into a random number between 0 and 1
-        stenosis_flag = 1
-        if stenosis_flag:
-            stenosis_location, effect_region, percentage = RandomStenosisGenerator()
-            # Random movement generator TODO
-            # reconstructedCurves = HeartMovementGenerator(reconstructedCurves)
-        else:
-            stenosis_location, effect_region, percentage = 0, 0, 0
-
-        # Update Stenosis Infor Saver
-        infor_list = [stenosis_flag, stenosis_location, effect_region, percentage,
-            distanceSourceToDetector, distanceSourceToDetector, positionerPrimaryAngle, positionerSecondaryAngle]
-        saveInfor[(str(iRecord), fileName)] = [str(i) for i in infor_list]
-
-        # -- vesselMeshes is a <python dict> with branch identifier as key,
-        #    and <Rhino.Geometry.Mesh> as values
-        vesselBreps, vesselMeshes = GenerateVesselMesh(reconstructedCurves, stenosis_location, 
-            effect_region, percentage, stenosis_flag)
+        success = 0
+        while success == 0:
+            stenosis_flag = 1
+            if stenosis_flag:
+                stenosis_location, effect_region, percentage = RandomStenosisGenerator()
+                # Random movement generator TODO
+                # reconstructedCurves = HeartMovementGenerator(reconstructedCurves)
+            else:
+                stenosis_location, effect_region, percentage = 0, 0, 0
+    
+            # Update Stenosis Infor Saver
+            infor_list = [stenosis_flag, stenosis_location, effect_region, percentage,
+                distanceSourceToDetector, distanceSourceToDetector, positionerPrimaryAngle, positionerSecondaryAngle]
+            saveInfor[(str(iRecord), fileName)] = [str(i) for i in infor_list]
+    
+            # -- vesselMeshes is a <python dict> with branch identifier as key,
+            #    and <Rhino.Geometry.Mesh> as values
+            try:
+                vesselBreps, vesselMeshes = GenerateVesselMesh(reconstructedCurves, stenosis_location, 
+                    effect_region, percentage, stenosis_flag)
+                success = 1
+            except:
+                print("Error!!!!")
+                print(stenosis_location,effect_region, percentage)
+                continue
+                # (0.38267169404413426, 0.034892475013214311, 0.33864133655537093)
+                # (0.11923939109000947, 0.04912465119884836, 0.35551291328558277)
+                # (0.98854180569293626, 0.035962558490046342, 0.37653743549849805)
+                # (0.52075417677609082, 0.016475121364722574, 0.22654419474552556)
+                # (0.47372991474187498, 0.023448820559792589, 0.11662228312921692)
 
         #-# Config Angle and Receive Screen 
-        visualizatioinPlane, lightVector = ConfigAngulation(positionerPrimaryAngle, positionerSecondaryAngle)
+        visualizatioinPlane, lightVector, Zplus = uniformResult(*ConfigAngulation(positionerPrimaryAngle, positionerSecondaryAngle))
         receiveScreenPlane, receiveScreenMesh = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
             distanceSourceToDetector, planeSize=130)
 
         #-# Set Active Viewport for Rhino
-        viewport = setView(lightVector, receiveScreenPlane, distanceSourceToPatient)
+        viewport = setView(lightVector, receiveScreenPlane, distanceSourceToPatient, Zplus)
 
         #-# Set up layers
         AddLayer()
@@ -151,7 +166,8 @@ def main(baseDir, defaultBranchesNum, batch_num, debug=False):
             # outFilePath = CaptureViewToFile(filePath, viewport)
             #-# Remove layer object from layer
             DeleteLayerObject() 
-        break
+        if iRecord == 2:
+            break
     saveStenosisInfor(saveInfor, inforSaveDir)
 
 if( __name__ == "__main__" ):

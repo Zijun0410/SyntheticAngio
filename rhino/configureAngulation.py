@@ -6,7 +6,7 @@ import math
 import System
 import scriptcontext
 
-def ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle,
+def ConfigAngulation(positionerPrimaryAngle, positionerSecondaryAngle,
     isocenter_x = 8.5, isocenter_y = -10.5, isocenter_z = 50):
     """
     This function sets up  the angulation based on 
@@ -26,15 +26,15 @@ def ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle,
     reference_axis = Rhino.Geometry.Point3d(isocenter_x,isocenter_y-1,isocenter_z) - isocenter
     
     ## Primary Rotation Setup
-    point_z_plus = Rhino.Geometry.Point3d(isocenter_x,isocenter_y,isocenter_z+1)
-    primaryRotationAxis = point_z_plus - isocenter
+    Zplus = Rhino.Geometry.Point3d(isocenter_x,isocenter_y,isocenter_z+1)
+    primaryRotationAxis = Zplus - isocenter
     #-# Transform Rotation(double angleRadians,Vector3d rotationAxis,Point3d rotationCenter)
     primary_angle_rotation = Rhino.Geometry.Transform.Rotation(
         math.radians(positionerPrimaryAngle), primaryRotationAxis, isocenter)
     reference_axis.Transform(primary_angle_rotation)
     
     ## Construct the YpZ plane with three points
-    YpZ_plane = Rhino.Geometry.Plane(isocenter, isocenter + reference_axis, point_z_plus)
+    YpZ_plane = Rhino.Geometry.Plane(isocenter, isocenter + reference_axis, Zplus)
     
     ## Secondary Rotation Setup
     secondaryRotationAxis = YpZ_plane.ZAxis
@@ -43,18 +43,18 @@ def ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle,
     reference_axis.Transform(seconday_angle_rotation)
     
     ## Construct Visualzation plane with norm vector and Origin
-    ## TODO: Set the X axis direction
     visualizatioinPlane = Rhino.Geometry.Plane(isocenter, reference_axis)
-    
+
     ## The lightVector is on the opposite direction of reference_axis
     lightVector = -reference_axis
     
     #print(visualizatioinPlane) 
-    return visualizatioinPlane, lightVector
+    return visualizatioinPlane, lightVector, Zplus
 
 def offsetPlane(plane, distance):
     """Helper function
     Offset the Plane along the Z-axis by certain distance
+    Keep the X and Y axes consistant
         Inputs:
             plane: <Rhino.Geometry.Plane> the original plan before offset
             distance: float, the distance where the z axis of plane move along
@@ -65,6 +65,10 @@ def offsetPlane(plane, distance):
     # print(directionVector)
     newOrigin = plane.Origin + directionVector
     newPlane = Rhino.Geometry.Plane(newOrigin, plane.ZAxis)
+    projectionTransform = Rhino.Geometry.Transform.PlanarProjection(plane)
+#    Xplus = plane.Origin + plane.XAxis
+#    Xplus.Transform(projectionTransform)
+#    newPlane.XAxis = Xplus
     return newPlane
 
 def ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
@@ -124,7 +128,7 @@ def viewportByName(viewName=None):
             raise ValueError('Viewport "{}" was not found in the Rhino '
                              'document.'.format(viewName))
 
-def setView(lightVector, receiveScreenPlane, distanceSourceToPatient, 
+def setView(lightVector, receiveScreenPlane, distanceSourceToPatient, Zplus,
     cameraPosition=None, cameraUpDirection=None):
     """
     Set the camera position and orientation for Rhino's 'Perspective' viewport 
@@ -135,27 +139,51 @@ def setView(lightVector, receiveScreenPlane, distanceSourceToPatient,
         distanceSourceToPatient: float, the distance from the camera to receive plane
       Or provide the following two params
         cameraPosition: <Rhino.Geometry.Point3d> the point where the camera sits
-        cameraUpDirection: <Rhino.Geometry.Vector3d> the direction of camera's up
+        cameraUpDirection: <Rhino.Geometry.Vector3d> camera's up direction
     Output:  
         viewPort: An active 'Perspective' viewport that has its display mode set
     """
     # Set the 'Perspective' viewport
     cameraPosition = receiveScreenPlane.Origin + receiveScreenPlane.ZAxis*distanceSourceToPatient/6
-    cameraUpDirection = 0*receiveScreenPlane.XAxis
+    cameraUpDirection = -receiveScreenPlane.XAxis
     view_port = viewportByName('Perspective')
     view_port.SetCameraTarget(Rhino.Geometry.Point3d.Add(cameraPosition, lightVector), False)
     view_port.SetCameraDirection(lightVector, False)
     view_port.SetCameraLocation(cameraPosition, False)
-    view_port.CameraUp = cameraUpDirection
+    
+    #-# Find the CameraUpdirection
+    # In general, the real world Z+ axis should point to up direction. 
+    # We want to find one axis from X+, X-, Y+ or Y- of the visualizatioinPlane
+    # and reset it as X+ diretcion of the plane. The target axis should have 
+    # the smallest angle with the projection of Z+ axis on the visualizatioinPlane, 
+    # and it will be used as the cameraUpDirection
+
+    #-# 1. Construct a projection transformation 
+    projectionTransform = Rhino.Geometry.Transform.PlanarProjection(receiveScreenPlane)
+    #-# 2. Inplace transformation of the Zplus point to get the projection of
+    #      Zplus point on the visualizationPlane
+    Zplus.Transform(projectionTransform)
+    #-# 3. Iterate through different axes directions of visualizationPlane
+    #      and calculate the angles between the ZplusDirection with these axes
+    ZplusDirection = Zplus - receiveScreenPlane.Origin
+    axisList = [receiveScreenPlane.XAxis, receiveScreenPlane.YAxis, 
+        -receiveScreenPlane.XAxis, -receiveScreenPlane.YAxis]
+    anglesList = []
+    for axis in axisList:
+        anglesList.append(Rhino.Geometry.Vector3d.VectorAngle(ZplusDirection, axis))
+    #-# 4. Find the direction that has the minumum angle and reset the X axis of 
+    #      visualizationPlane
+    # visualizatioinPlane.XAxis = axisList[anglesList.index(min(anglesList))]
+    view_port.CameraUp = axisList[anglesList.index(min(anglesList))]
     return view_port
 
 
 
 if( __name__ == "__main__" ):
     
-    visualizatioinPlane, lightVector = ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle)
+    visualizatioinPlane, lightVector, Zplus = ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle)
 
     receiveScreenPlane, receiveScreenMesh = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
         distanceSourceToDetector, planeSize)
 
-    viewport = setView(lightVector, receiveScreenPlane, distanceSourceToPatient)
+    viewport = setView(lightVector, receiveScreenPlane, distanceSourceToPatient, Zplus)

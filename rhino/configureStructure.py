@@ -10,7 +10,8 @@ def AddPipe(curve_object, parameters, radii, blend_type=1, cap=1, fit=True):
     # An modificatiioin for the code from the following source
     # https://github.com/mcneel/rhinoscriptsyntax/blob/rhino-6.x/Scripts/rhinoscript/surface.py
 
-    """Creates a single walled surface with a circular profile around a curve
+    """
+    Creates a single walled surface with a circular profile around a curve
     Parameters:
         curve_object: <Rhino.Geometry.Curve> the rail curve
         parameters, radii: ([float, ...]), list of radius values at normalized curve parameters
@@ -21,8 +22,7 @@ def AddPipe(curve_object, parameters, radii, blend_type=1, cap=1, fit=True):
         cap: (int, optional), 0(none), 1(flat), 2(round)
         fit: (bool, optional), attempt to fit a single surface
     Returns:
-        breps: <Rhino.Geometry.Brep> the created Brep objects  
-      
+        breps: <Rhino.Geometry.Brep> the created Brep objects   
     """
     abs_tol = scriptcontext.doc.ModelAbsoluteTolerance
     ang_tol = scriptcontext.doc.ModelAngleToleranceRadians
@@ -143,8 +143,12 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
         if branch_identifier == 'major':
             if stenosis_flag:
                 # -- GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major)
+#                try:
                 positions_param, positions_radii = GenerateStenosis(stenosis_location, 
                     effect_region, percentage, baseline_radii_major)
+#                except:
+#                    print(stenosis_location, effect_region, percentage)
+#                    continue
             else:
                 # No stenosis
                 positions_radii = baseline_radii_major
@@ -154,8 +158,12 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
             positions_param = dedault_position_param
             positions_radii = nonMajorMatchRadii[branch_identifier]
         # Construct the Pipe brep
+#        try:
         preVesselBreps[branch_identifier] = AddPipe(reconstructedCurves[branch_identifier], positions_param, positions_radii)
-
+#        except IndexError:
+#            print(stenosis_location, effect_region, percentage)
+#            continue
+#            
     #-# Prepare to update the vessel breps and the mesh to be created    
     majorBrep = preVesselBreps['major']
     vesselBreps = {}

@@ -160,3 +160,5 @@ def saveStenosisInfor(saveInfor, inforSaveDir, csvName='stnosis_infor.csv'):
             fileHandle.write(','.join(identifier))
             fileHandle.write(','.join(saveInfor[identifier])+'\n')
             
+def uniformResult(*args):
+    return args[0], args[1], args[2]
