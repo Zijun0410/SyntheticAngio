@@ -15,7 +15,7 @@ import rhinoscriptsyntax as rs
 # https://github.com/mcneel/rhinoscriptsyntax/tree/rhino-6.x/Scripts/rhinoscript
 # https://developer.rhino3d.com/api/RhinoScriptSyntax/
 
-def main(baseDir, defaultBranchesNum, batch_num, debug=False):
+def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
     """
 
     """
@@ -96,10 +96,15 @@ def main(baseDir, defaultBranchesNum, batch_num, debug=False):
         #-# Set up layers
         AddLayer()
 
+        #-# Adjust the size of the view
+
         #-# Project the receiveScreen and hatch as white.
         whiteRGB = (255, 255, 255)
         # -- HatchProjection(targetMesh, receiveScreenPlane, viewport, colorCode, alpha=255, offset=0)
         HatchProjection(receiveScreenMesh, receiveScreenPlane, viewport, whiteRGB, offset=-1)
+        if adjust:
+            return 
+
         #-# Project the stnosis point and hatch as black
         blackRGB = (0, 0, 0)
         ## TODO: Only when there are stenosis
@@ -109,8 +114,8 @@ def main(baseDir, defaultBranchesNum, batch_num, debug=False):
         #-# Save to the screenshot to file
         CaptureViewToFile(os.path.join(saveDir, 'stnosis.png'), viewport)
         if debug:
-            userInput = GetString(message="Check Output for Stenosis Point: ")
-            if userInput == "Stop": # else just continue
+            userInput = GetString(message="Check Output for Stenosis Point")
+            if userInput == "n": # else just continue
                 return
         #-# Remove the object from the layer
         DeleteLayerObject()
@@ -123,8 +128,8 @@ def main(baseDir, defaultBranchesNum, batch_num, debug=False):
         #-# Save to File
         CaptureViewToFile(os.path.join(saveDir, 'start.png'), viewport)
         if debug:
-            userInput = GetString(message="Check Output for Vessel Start Point: ")
-            if userInput == "Stop": # else just continue
+            userInput = GetString(message="Check Output for Vessel Start Point")
+            if userInput == "n": # else just continue
                 return
         #-# Remove the object from layer
         DeleteLayerObject()
@@ -141,8 +146,8 @@ def main(baseDir, defaultBranchesNum, batch_num, debug=False):
             filePath = os.path.join(saveDir, '{}.png'.format(vessel_identifier))
             outFilePath = CaptureViewToFile(filePath, viewport)
             if debug:
-                userInput = GetString(message="Check Output for Vessel Mesh: ")
-                if userInput == "Stop": # else just continue
+                userInput = GetString(message="Check Output for Vessel Mesh")
+                if userInput == "n": # else just continue
                     return
             #-# Remove layer object from layer
             DeleteLayerObject() 
@@ -157,8 +162,8 @@ def main(baseDir, defaultBranchesNum, batch_num, debug=False):
             #-# Capture the file and save to folder
             filePath = os.path.join(saveDir, '{}_contour.png'.format(vessel_identifier))
             if debug:
-                userInput = GetString(message="Check Output for Contour Hatch: ")
-                if userInput == "Stop": # else just continue
+                userInput = GetString(message="Check Output for Contour Hatch")
+                if userInput == "n": # else just continue
                     return
             # C:\Users\gaozj\Desktop\Angio\SyntheticAngio\ViewCapture20210928_005204001.jpg.png
             cmd = " _Width 1896 _Height 1127 _TransparentBackgroud _Yes _Enter"
@@ -174,4 +179,4 @@ if( __name__ == "__main__" ):
     baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
     batch_num = '1'
-    main(baseDir, defaultBranchesNum, batch_num, debug=False)
+    main(baseDir, defaultBranchesNum, batch_num)
