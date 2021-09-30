@@ -84,7 +84,8 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
                 # (0.98854180569293626, 0.035962558490046342, 0.37653743549849805)
                 # (0.52075417677609082, 0.016475121364722574, 0.22654419474552556)
                 # (0.47372991474187498, 0.023448820559792589, 0.11662228312921692)
-
+                # (0.96682662659530982, 0.049581884697998735, 0.66673771498717416)
+                # (0.98281510714822551, 0.038127970332965597, 0.89889744161188434)
         #-# Config Angle and Receive Screen 
         visualizatioinPlane, lightVector, Zplus = uniformResult(*ConfigAngulation(positionerPrimaryAngle, positionerSecondaryAngle))
         receiveScreenPlane, receiveScreenMesh = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
@@ -102,6 +103,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
         whiteRGB = (255, 255, 255)
         # -- HatchProjection(targetMesh, receiveScreenPlane, viewport, colorCode, alpha=255, offset=0)
         HatchProjection(receiveScreenMesh, receiveScreenPlane, viewport, whiteRGB, offset=-1)
+        CaptureViewToFile(os.path.join(saveDir, 'view.png'), viewport, transparent=False)
         if adjust:
             return 
 
@@ -171,13 +173,13 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
             # outFilePath = CaptureViewToFile(filePath, viewport)
             #-# Remove layer object from layer
             DeleteLayerObject() 
-        if iRecord == 2:
-            break
+        #if iRecord == 2:
+            # break
     saveStenosisInfor(saveInfor, inforSaveDir)
 
 if( __name__ == "__main__" ):
-    baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
+    # baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     baseDir = r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
     batch_num = '1'
-    main(baseDir, defaultBranchesNum, batch_num)
+    main(baseDir, defaultBranchesNum, batch_num, adjust=False)

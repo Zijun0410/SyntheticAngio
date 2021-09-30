@@ -144,12 +144,13 @@ def setView(lightVector, receiveScreenPlane, distanceSourceToPatient, Zplus,
         viewPort: An active 'Perspective' viewport that has its display mode set
     """
     # Set the 'Perspective' viewport
-    cameraPosition = receiveScreenPlane.Origin + receiveScreenPlane.ZAxis*distanceSourceToPatient/6
+    cameraPosition = receiveScreenPlane.Origin + receiveScreenPlane.ZAxis*20 #distanceSourceToPatient/6
     cameraUpDirection = -receiveScreenPlane.XAxis
     view_port = viewportByName('Perspective')
-    view_port.SetCameraTarget(Rhino.Geometry.Point3d.Add(cameraPosition, lightVector), False)
-    view_port.SetCameraDirection(lightVector, False)
-    view_port.SetCameraLocation(cameraPosition, False)
+    # Rhino.Geometry.Point3d.Add(cameraPosition, lightVector)
+    view_port.SetCameraTarget(receiveScreenPlane.Origin, True)
+    view_port.SetCameraDirection(lightVector, True)
+    view_port.SetCameraLocation(cameraPosition, True)
     
     #-# Find the CameraUpdirection
     # In general, the real world Z+ axis should point to up direction. 
@@ -175,6 +176,7 @@ def setView(lightVector, receiveScreenPlane, distanceSourceToPatient, Zplus,
     #      visualizationPlane
     # visualizatioinPlane.XAxis = axisList[anglesList.index(min(anglesList))]
     view_port.CameraUp = axisList[anglesList.index(min(anglesList))]
+    scriptcontext.doc.Views.ActiveView.Redraw()
     return view_port
 
 

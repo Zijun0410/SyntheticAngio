@@ -1,6 +1,7 @@
 %%% Synthetic the angiogram image
 
 Config_Path
+% Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\output\1
 
 %--%
 image_identifier = 'example_01';

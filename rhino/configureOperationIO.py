@@ -68,7 +68,7 @@ def ReadMetaData(baseDir):
     recordNum = lineIndex-1 # minus 1 because of the header column
     return metaData, recordNum
 
-def LoadCurveFromTxt(baseDir, defaultBranches):
+def LoadCurveFromTxt(baseDir, defaultBranches, folderName='RCA_Brief'):
     """
     Load back the reconstructed curve from the text file
     Input:
@@ -80,7 +80,7 @@ def LoadCurveFromTxt(baseDir, defaultBranches):
     reconstructedCurves = {}
     for branchIdx in list(defaultBranches.keys()):
         pintList = []
-        with open(os.path.join(baseDir,'{}.txt'.format(branchIdx)), 'r') as fileHandle:
+        with open(os.path.join(baseDir, 'Construction', folderName, '{}.txt'.format(branchIdx)), 'r') as fileHandle:
             linesIn = fileHandle.readlines()
             for line in linesIn:
                 locations = line.strip('\n').split(', ')
@@ -92,7 +92,7 @@ def LoadCurveFromTxt(baseDir, defaultBranches):
     return reconstructedCurves
 
 
-def CaptureViewToFile(filePath, viewport, width=1896, height=1127, displayMode='Shaded', transparent=True):
+def CaptureViewToFile(filePath, viewport, width=None, height=None, displayMode='Shaded', transparent=True):
 
     """
     Capture a Viewport to a PNG file path.
@@ -100,9 +100,9 @@ def CaptureViewToFile(filePath, viewport, width=1896, height=1127, displayMode='
         filePath: Full path to the file where the image will be saved.
         viewport: An active 'Perspective' viewport that has its display mode set
         width: Integer for the image width in pixels. If None, the width of the
-            active viewport will be used. (Default: 1100).
+            active viewport will be used. (Default: None).
         height: Integer for the image height in pixels. If None, the height of the
-            active viewport will be used. (Default: 1100).
+            active viewport will be used. (Default: None).
         displayMode: Text for the display mode to which the Rhino viewport will be
             set. For example: Wireframe, Shaded, Rendered, etc. If None, it will
             be the current viewport's display mode. (Default: Shaded).
