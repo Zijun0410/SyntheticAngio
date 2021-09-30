@@ -10,12 +10,14 @@ else
     turbo = '/nfs/turbo/med-kayvan-lab/';
 end
 
-%-% Add relevant code to MATLAB path
-current_folder = pwd;
-addpath(current_folder)
-addpath(genpath(fullfile(current_folder, 'util')));
-
 base_data_path = fullfile(turbo,'Projects','Angiogram','Data','Processed','Zijun','Synthetic');
 base_code_path = fullfile(turbo,'Users','zijung','Code','SyntheticAngio');
 % Z:\Datasets\Angiogram\UK\Matched\Right
 base_dicom_path = fullfile(turbo,'Datasets','Angiogram','UK','Matched','Right');
+
+
+%-% Add relevant code to MATLAB path
+addpath(genpath(fullfile(base_code_path, 'util')));
+addpath(genpath(fullfile(base_code_path, 'matlab')));
+
+

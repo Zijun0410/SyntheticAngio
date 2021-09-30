@@ -1,7 +1,10 @@
 %%% Synthetic the angiogram image
 
+batch_num = 1; 
+% Generated on Sep 30, 2021, 282 image groups in total
+% the distance of contour set to 0.15 and the alpha value of hatch is 1
+
 Config_Path
-% Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\output\1
 
 %--%
 image_identifier = 'example_01';

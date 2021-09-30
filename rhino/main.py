@@ -25,7 +25,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
     #-# Initiate Stenosis Infor Saver
     saveInfor = {}
     #-# Dir for saving the stenosis information 
-    inforSaveDir = os.path.join(baseDir, 'output', batch_num)
+    inforSaveDir = os.path.join(baseDir, 'Rhino_Output', batch_num)
 
     #-# Loop through Records 
     for iRecord in range(recordNum):
