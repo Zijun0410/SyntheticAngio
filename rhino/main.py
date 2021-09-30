@@ -177,6 +177,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
 
 if( __name__ == "__main__" ):
     baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
+    baseDir = r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
     batch_num = '1'
     main(baseDir, defaultBranchesNum, batch_num)
