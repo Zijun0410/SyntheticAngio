@@ -3,3 +3,4 @@ notebook/.ipynb_checkpoints
 *.png
 *.3dmbak
 demo/
+*.asv
