@@ -14,7 +14,9 @@ base_data_path = fullfile(turbo,'Projects','Angiogram','Data','Processed','Zijun
 base_code_path = fullfile(turbo,'Users','zijung','Code','SyntheticAngio');
 % Z:\Datasets\Angiogram\UK\Matched\Right
 base_dicom_path = fullfile(turbo,'Datasets','Angiogram','UK','Matched','Right');
-
+% Z:\Projects\Angiogram\Data\Processed\results\preprocessed\UKR\Full\
+real_image_path = fullfile(turbo,'Projects','Angiogram','Data','Processed',...
+    'results', 'preprocessed', 'UKR', 'Full');
 
 %-% Add relevant code to MATLAB path
 addpath(genpath(fullfile(base_code_path, 'util')));

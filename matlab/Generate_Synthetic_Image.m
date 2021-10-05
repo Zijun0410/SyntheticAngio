@@ -1,12 +1,52 @@
 %%% Synthetic the angiogram image based on the Rhino vessel image and the
 %%% real background image. 
 
+% Setting the path etc
+% Generate the infor_saver_cell which contains
+%     angio_struct with the following fields
+%         angio_struct.meta_data = struct();
+%         angio_struct.stenosis_data = struct();
+%         angio_struct.endpoint_data = struct();
+%         angio_struct.segment = struct();
+%         angio_struct.volumn = struct();
+%         angio_struct.branch_identifiers = branch_identifiers;
+%         angio_struct.ref_size = ref_size;
+Load_Rhino_Image
 
-batch_num = 1; 
-% Generated on Sep 30, 2021, 282 image groups in total
-% the distance of contour set to 0.15 and the alpha value of hatch is 1
+for iVess=1:length(infor_saver_cell)
+    angio_struct = infor_saver_cell{iVess};
+    real_image_path = fullfile(real_image_path, angio_struct.file_name, 'frame1.png');
+    back_image_path = fullfile(base_data_path, 'BackGround_Image', 'Clean', ...
+        stracat(angio_struct.file_name,'.png'));
+    angio_struct.background = im2double(imread(back_image_path));
+    angio_struct.real_image = im2double(imread(real_image_path));
+    
+    gaussian_factor = 2;
+    confidence_factor = 0.09;
+    border_threshold = 0.5;
+    adjust_factor_1 = 0.02;
+    adjust_factor_2 = 100;
+    for identifier = angio_struct.branch_identifiers
+        volumn_image = angio_struct.volumn.(identifier);
+        blur_image = imgaussfilt(volumn_image, gaussian_factor);
+        vessel_confidence = (1 - blur_image)*confidence_factor;
+        sythetic_image = angio_struct.background - vessel_confidence;
+        sythetic_image(blur_image<border_threshold) = ...
+            sythetic_image(blur_image<border_threshold)-adjust_factor_1-rand(1)/adjust_factor_2;
+    end
+    image_display = zeros(size(sythetic_image,1),)
+    % visualize image in a horizental concat way
+    montage(sythetic_image,'size',[1 3]);
+end
+temp = cat(3, stnosis_image, stnosis_image);
+    blur_image = imgaussfilt(blur_image,3);
 
-Config_Path
+    vessel_confidence = (1 - blur_image)*0.09;
+    nomalized_sample_frame = nomalized_sample_frame - vessel_confidence;
+
+    nomalized_sample_frame(blur_image<0.5) = nomalized_sample_frame(blur_image<0.5) - 0.02 - rand(1)/100; 
+
+    
 
 %--%
 image_identifier = 'example_01';
@@ -37,16 +77,16 @@ for iBranch=1:num_png_files
     I2(250:250+1400-1,25:25+1400-1) = main_branch_gray(200:200+1400-1,250:250+1400-1);
     % imcrop(main_branch_gray,[300,50,1200,1200])
     ref_size = size(sample_frame,2);
-    main_branch = imresize(I2,[ref_size ref_size]);
+    blur_image = imresize(I2,[ref_size ref_size]);
     % figure;imshow(main_branch);
 
 
-    main_branch = imgaussfilt(main_branch,3);
+    blur_image = imgaussfilt(blur_image,3);
 
-    vessel_confidence = (1 - main_branch)*0.09;
+    vessel_confidence = (1 - blur_image)*0.09;
     nomalized_sample_frame = nomalized_sample_frame - vessel_confidence;
 
-    nomalized_sample_frame(main_branch<0.5) = nomalized_sample_frame(main_branch<0.5) - 0.02 - rand(1)/100;    
+    nomalized_sample_frame(blur_image<0.5) = nomalized_sample_frame(blur_image<0.5) - 0.02 - rand(1)/100;    
 end
 
 figure;imshow(nomalized_sample_frame);

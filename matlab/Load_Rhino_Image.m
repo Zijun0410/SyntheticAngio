@@ -47,6 +47,7 @@ for iCase = 1:size(stenosis_infors,1)
     angio_struct.segment = struct();
     angio_struct.volumn = struct();
     angio_struct.branch_identifiers = branch_identifiers;
+    angio_struct.ref_size = ref_size;
     
     % Get case specifice stenosis_infor
     stenosis_infor = stenosis_infors(iCase,:);
