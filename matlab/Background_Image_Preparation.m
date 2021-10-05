@@ -1,8 +1,11 @@
 %%% Save the first frame (ususally within the pre-release stage) of a XCA 
 %%% video as the background of synthetic XCA image. Check the quality of
 %%% the first frame, only leave those good ones for XCA synthesis
+%%% In the future, this function should be replace by a python deep
+%%% learning inference module that can decide the catheter endpoint.
+
 %%% Author: Zijun Gao
-%%% Last Update: Sep 7th, 2021
+%%% Last Update: Oct 5th, 2021
 %%% Project: SyntheticAngio
 
 %-% 1. Configure the Path

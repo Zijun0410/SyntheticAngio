@@ -6,48 +6,100 @@
 %%%  
 
 %%% Author: Zijun Gao
-%%% Last Update: Sep 30th 2021
+%%% Last Update: Oct 5th 2021
 %%% Project: SyntheticAngio
 
-ref_size = 512;
-%-% 
+batch_num = 1; 
+% Generated on Sep 30, 2021, 282 image groups in total
+% the distance of contour set to 0.15 and the alpha value of hatch is 1
+
+Config_Path
+
+%-% Some default setting
 image_load_dir = fullfile(base_data_path, 'Rhino_Output', num2str(batch_num));
+ref_size = 512;
 % meta_data_dir = fullfile(base_data_path, 'Meta_Data');
 branch_identifiers = {'major', 'branch_1', 'branch_2', 'branch_3', 'branch_4', 'branch_5'};
-%[file_path_map, num_png_files, ~] = fileInfor(fullfile(image_load_dir,image_identifier),'.png'); 
-stnosis_infor = readtable(fullfile(image_load_dir, 'stnosis_infor.csv'));
-for iCase = 1:size(stnosis_infor,1)
+
+%-% Load stenosis infor generated from Rhino-python scripts
+stenosis_data = readtable(fullfile(image_load_dir, 'stnosis_infor.csv'));
+stenosis_infors = sortrows(stenosis_data,1);
+% TODO: modify here for future change
+stenosis_infors.Properties.VariableNames = {'index', 'fileName', 'stenosis_location',...
+    'effect_region', 'percentage', 'distanceSourceToDetector',... 
+    'distanceSourceToPatient', 'positionerPrimaryAngle', 'positionerSecondaryAngle'};
+
+%-% Load metedata generated from dicom file and manusal annotation
+  % See the matlab scripts: Background Image Preparation
+meta_infors = readtable(fullfile(base_data_path, 'meta_summary.csv'));
+
+%-% Initate the information saver
+infor_saver_cell = cell(size(stenosis_infors,1),1);
+
+%-% Iterate through the files
+for iCase = 1:size(stenosis_infors,1)
     %% 
-    filename_cell = stnosis_infor{iCase, 2};
-    file_name = filename_cell{1}(1:end-1); % modify here for the bug current bug in the stnosis_infor generation
+    %-% Initate AngioStruct
+    angio_struct = struct();
+    angio_struct.meta_data = struct();
+    angio_struct.stenosis_data = struct();
+    angio_struct.endpoint_data = struct();
+    angio_struct.segment = struct();
+    angio_struct.volumn = struct();
+    angio_struct.branch_identifiers = branch_identifiers;
+    
+    % Get case specifice stenosis_infor
+    stenosis_infor = stenosis_infors(iCase,:);
+    filename_cell = stenosis_infor.fileName;
+    % TODO: modify here for the bug current bug in the stnosis_infor generation
+    file_name = filename_cell{1}(1:end-1); 
+    angio_struct.file_name = file_name;
     % stnosis_flag = ['stnosis_flag', 'stenosis_location','effect_region','percentage'];
-    % check here as well
-    stenosis_percentage = stnosis_infor{iCase, 5};
-    % stenosis_label = stnosis_infor{iCase, 3};
+    angio_struct.stenosis_data.stenosis_percentage = stenosis_infor.percentage;
+    % TODO: check here as well
+    if stenosis_infor.percentage < 0.5
+        angio_struct.stenosis_data.stenosis_grade = 1;
+    elseif stenosis_infor.percentage < 0.7
+        angio_struct.stenosis_data.stenosis_grade = 2;
+    else
+        angio_struct.stenosis_data.stenosis_grade = 3;
+    end
+    
     file_png_folder = fullfile(image_load_dir, file_name);
+    
+    % Get the corresponding meta data and the center of catheter endpoint 
+    meta_infor = meta_infors(contains(meta_infors.FileName,file_name),:);
+    x_center = meta_infor.CenterX;
+    y_center = meta_infor.CenterY;    
+    angio_struct.endpoint_data.x_center = x_center;
+    angio_struct.endpoint_data.y_center = y_center;
     
     %-% Get the receive screen region for background removal
     view = imread(fullfile(file_png_folder, 'view.png'));
     view_gray = rgb2gray(im2double(view));
     receive_screen_mask = view_gray == max(view_gray(:));
-    %-% Get the initial point of the vessel for catheter endpoint
-    %   and vessel start point alignment
+    
+    %-% Get the initial point of the vessel for aligning catheter endpoint
+    %   and vessel start point 
     start_raw = imread(fullfile(file_png_folder, 'start.png'));
     start_image = getMaskedImage(receive_screen_mask, start_raw, ref_size)<0.5;
-    x_center = 209.5;
-    y_center = 119.5;       
+   
     %-% Iterate through branch related images    
     for identifier_cell = branch_identifiers
-        branch_raw = imread(fullfile(file_png_folder, strcat(identifier_cell{1}, '.png')));
-        hatch_raw = imread(fullfile(file_png_folder, strcat(identifier_cell{1}, '_contour.png')));
-        branch_resized = getMaskedImage(receive_screen_mask, branch_raw, ref_size);
-        branch_image = recreateMatchedImage(x_center, y_center, ref_size, start_image, branch_resized);
-        hatch_resized = getMaskedImage(receive_screen_mask, hatch_raw, ref_size);
-        hatch_image = recreateMatchedImage(x_center, y_center, ref_size, start_image, hatch_resized);
+        angio_struct.segment.(identifier_cell{1}) = preprocessRhinoImage(...
+            fullfile(file_png_folder, strcat(identifier_cell{1}, '.png')), ...
+            receive_screen_mask, x_center, y_center, ref_size, start_image);
+        angio_struct.volumn.(identifier_cell{1}) = preprocessRhinoImage(fullfile(file_png_folder, ...
+            strcat(identifier_cell{1}, '_contour.png')), ...
+            receive_screen_mask, x_center, y_center, ref_size, start_image);
+        
     end
-    %-% Get the position of the stenosis
+    %-% Get the position of the stenosis       
     stnosis_raw = imread(fullfile(file_png_folder, 'stnosis.png'));
     stnosis_resized = getMaskedImage(receive_screen_mask, stnosis_raw, ref_size)<0.5;  
     stnosis_image = recreateMatchedImage(x_center, y_center, ref_size, start_image, stnosis_resized);
-    
+    stnosis_boundingbox = regionprops(stnosis_image, 'BoundingBox').BoundingBox;
+    angio_struct.stenosis_data.x_center = stnosis_boundingbox(1)+stnosis_boundingbox(3)/2;
+    angio_struct.stenosis_data.y_center = stnosis_boundingbox(2)+stnosis_boundingbox(4)/2;
+    infor_saver_cell{iCase,1} = angio_struct;
 end

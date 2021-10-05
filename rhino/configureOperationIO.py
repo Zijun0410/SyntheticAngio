@@ -147,13 +147,13 @@ def saveStenosisInfor(saveInfor, inforSaveDir, csvName='stnosis_infor.csv'):
         saveInfor: <python dict> with key of (index, fileName) and value of a 
             <python list> that contains [stenosis_flag, stenosis_location, 
             effect_region, percentage, distanceSourceToDetector, 
-            distanceSourceToDetector, positionerPrimaryAngle, positionerSecondaryAngle]
+            distanceSourceToPatient, positionerPrimaryAngle, positionerSecondaryAngle]
         inforSaveDir: <python string>, the directory of saving the information
         csvName: <python string>, the name of the saved file
     """
     headline = ['index', 'fileName', 'stenosis_flag', 'stenosis_location', 
             'effect_region', 'percentage', 'distanceSourceToDetector', 
-            'distanceSourceToDetector', 'positionerPrimaryAngle', 'positionerSecondaryAngle']
+            'distanceSourceToPatient', 'positionerPrimaryAngle', 'positionerSecondaryAngle']
     with open(os.path.join(inforSaveDir,csvName), 'w') as fileHandle:
         fileHandle.write(','.join(headline) + '\n')
         for identifier in list(saveInfor.keys()):

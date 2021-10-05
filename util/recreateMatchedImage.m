@@ -1,5 +1,7 @@
 function match_image = recreateMatchedImage(x_center, y_center, ref_size, ...
     vessel_start_image, target_image)
+    %%% crop the inage and merge the patch back into a image so that the end
+    %%% position of a catheter and the initial point of vessel matches
     match_image = zeros(ref_size, ref_size) + 1;
     annotation_boundingbox = regionprops(vessel_start_image, 'BoundingBox').BoundingBox;
     s_vessel = annotation_boundingbox(1)+annotation_boundingbox(3)/2;

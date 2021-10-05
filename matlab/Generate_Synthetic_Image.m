@@ -1,4 +1,6 @@
-%%% Synthetic the angiogram image
+%%% Synthetic the angiogram image based on the Rhino vessel image and the
+%%% real background image. 
+
 
 batch_num = 1; 
 % Generated on Sep 30, 2021, 282 image groups in total

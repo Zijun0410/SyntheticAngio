@@ -48,7 +48,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
         if distanceSourceToDetector == -1:
             distanceSourceToDetector = 1040.3
         if distanceSourceToPatient == -1:
-            distanceSourceToDetector = 776.5
+            distanceSourceToPatient = 776.5
         
         #-# Generate Meshes
         reconstructedCurves = LoadCurveFromTxt(baseDir, defaultBranchesNum)
@@ -66,7 +66,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
     
             # Update Stenosis Infor Saver
             infor_list = [stenosis_flag, stenosis_location, effect_region, percentage,
-                distanceSourceToDetector, distanceSourceToDetector, positionerPrimaryAngle, positionerSecondaryAngle]
+                distanceSourceToPatient, distanceSourceToDetector, positionerPrimaryAngle, positionerSecondaryAngle]
             saveInfor[(str(iRecord), fileName)] = [str(i) for i in infor_list]
     
             # -- vesselMeshes is a <python dict> with branch identifier as key,
@@ -86,6 +86,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
                 # (0.47372991474187498, 0.023448820559792589, 0.11662228312921692)
                 # (0.96682662659530982, 0.049581884697998735, 0.66673771498717416)
                 # (0.98281510714822551, 0.038127970332965597, 0.89889744161188434)
+                
         #-# Config Angle and Receive Screen 
         visualizatioinPlane, lightVector, Zplus = uniformResult(*ConfigAngulation(positionerPrimaryAngle, positionerSecondaryAngle))
         receiveScreenPlane, receiveScreenMesh = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
