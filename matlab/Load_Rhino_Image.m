@@ -9,7 +9,7 @@
 %%% Last Update: Oct 5th 2021
 %%% Project: SyntheticAngio
 
-batch_num = 1; 
+batch_num = 2; 
 % Generated on Sep 30, 2021, 282 image groups in total
 % the distance of contour set to 0.15 and the alpha value of hatch is 1
 
@@ -25,8 +25,8 @@ branch_identifiers = {'major', 'branch_1', 'branch_2', 'branch_3', 'branch_4', '
 stenosis_data = readtable(fullfile(image_load_dir, 'stnosis_infor.csv'));
 stenosis_infors = sortrows(stenosis_data,1);
 % TODO: modify here for future change
-stenosis_infors.Properties.VariableNames = {'index', 'fileName', 'stenosis_location',...
-    'effect_region', 'percentage', 'distanceSourceToDetector',... 
+stenosis_infors.Properties.VariableNames = {'index', 'fileName', 'stenosis_flag', ...
+    'stenosis_location', 'effect_region', 'percentage', 'distanceSourceToDetector',... 
     'distanceSourceToPatient', 'positionerPrimaryAngle', 'positionerSecondaryAngle'};
 
 %-% Load metedata generated from dicom file and manusal annotation
@@ -35,7 +35,7 @@ meta_infors = readtable(fullfile(base_data_path, 'meta_summary.csv'));
 
 %-% Initate the information saver
 infor_saver_cell = cell(size(stenosis_infors,1),1);
-
+%%
 %-% Iterate through the files
 for iCase = 1:size(stenosis_infors,1)
     %% 
@@ -53,10 +53,11 @@ for iCase = 1:size(stenosis_infors,1)
     stenosis_infor = stenosis_infors(iCase,:);
     filename_cell = stenosis_infor.fileName;
     % TODO: modify here for the bug current bug in the stnosis_infor generation
-    file_name = filename_cell{1}(1:end-1); 
+    file_name = filename_cell{1}; 
     angio_struct.file_name = file_name;
     % stnosis_flag = ['stnosis_flag', 'stenosis_location','effect_region','percentage'];
     angio_struct.stenosis_data.stenosis_percentage = stenosis_infor.percentage;
+    angio_struct.stenosis_flag = stenosis_infor.stenosis_flag;
     % TODO: check here as well
     if stenosis_infor.percentage < 0.5
         angio_struct.stenosis_data.stenosis_grade = 1;
@@ -65,6 +66,8 @@ for iCase = 1:size(stenosis_infors,1)
     else
         angio_struct.stenosis_data.stenosis_grade = 3;
     end
+    %_% Display information when running
+    disp(['Running the ', num2str(iCase), ' case. File name: ', file_name])
     
     file_png_folder = fullfile(image_load_dir, file_name);
     
@@ -90,8 +93,8 @@ for iCase = 1:size(stenosis_infors,1)
         angio_struct.segment.(identifier_cell{1}) = preprocessRhinoImage(...
             fullfile(file_png_folder, strcat(identifier_cell{1}, '.png')), ...
             receive_screen_mask, x_center, y_center, ref_size, start_image);
-        angio_struct.volumn.(identifier_cell{1}) = preprocessRhinoImage(fullfile(file_png_folder, ...
-            strcat(identifier_cell{1}, '_contour.png')), ...
+        angio_struct.volumn.(identifier_cell{1}) = preprocessRhinoImage(...
+            fullfile(file_png_folder, strcat(identifier_cell{1}, '_contour.png')), ...
             receive_screen_mask, x_center, y_center, ref_size, start_image);
         
     end
@@ -99,8 +102,14 @@ for iCase = 1:size(stenosis_infors,1)
     stnosis_raw = imread(fullfile(file_png_folder, 'stnosis.png'));
     stnosis_resized = getMaskedImage(receive_screen_mask, stnosis_raw, ref_size)<0.5;  
     stnosis_image = recreateMatchedImage(x_center, y_center, ref_size, start_image, stnosis_resized);
-    stnosis_boundingbox = regionprops(stnosis_image, 'BoundingBox').BoundingBox;
-    angio_struct.stenosis_data.x_center = stnosis_boundingbox(1)+stnosis_boundingbox(3)/2;
-    angio_struct.stenosis_data.y_center = stnosis_boundingbox(2)+stnosis_boundingbox(4)/2;
+    match_boundingbox = regionprops(stnosis_image, 'BoundingBox').BoundingBox;
+    angio_struct.stenosis_data.x_center = match_boundingbox(1)+match_boundingbox(3)/2;
+    angio_struct.stenosis_data.y_center = match_boundingbox(2)+match_boundingbox(4)/2;
+    
+    matched_start_image = recreateMatchedImage(x_center, y_center, ref_size, start_image, start_image);
+    match_boundingbox = regionprops(matched_start_image, 'BoundingBox').BoundingBox;
+    match_x_center = match_boundingbox(1)+match_boundingbox(3)/2;
+    match_y_center = match_boundingbox(2)+match_boundingbox(4)/2;
+    
     infor_saver_cell{iCase,1} = angio_struct;
 end

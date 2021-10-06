@@ -6,7 +6,7 @@ function resized_image = getMaskedImage(mask, raw_image, ref_size)
     [ii,jj] = ind2sub(size(mask),find(mask>0));
     ymin=min(ii);ymax=max(ii);xmin=min(jj);xmax=max(jj);
     % Make sure it's a square cut by limiting the dimensions
-    dimension = min(xmax-xmin+1, ymax-ymin+1);
-    cropped_image = imcrop(gray_color_image,[xmin,ymin,dimension,dimension]);
+    dimension = min(xmax-xmin, ymax-ymin);
+    cropped_image = imcrop(gray_color_image,[xmin+1,ymin+1,dimension-1,dimension-1]);
     resized_image = imresize(cropped_image,[ref_size ref_size]);
 end

@@ -158,6 +158,7 @@ def saveStenosisInfor(saveInfor, inforSaveDir, csvName='stnosis_infor.csv'):
         fileHandle.write(','.join(headline) + '\n')
         for identifier in list(saveInfor.keys()):
             fileHandle.write(','.join(identifier))
+            fileHandle.write(',')
             fileHandle.write(','.join(saveInfor[identifier])+'\n')
             
 def uniformResult(*args):

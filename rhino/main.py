@@ -38,7 +38,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
         distanceSourceToPatient = float(metaData['DistanceSourceToPatient'][iRecord])
         
         #-# Create save directory if not exist
-        saveDir = os.path.join(baseDir, 'output', batch_num, fileName)
+        saveDir = os.path.join(baseDir, 'Rhino_Output', batch_num, fileName)
         if not os.path.exists(saveDir):
             os.makedirs(saveDir)
 
@@ -168,19 +168,20 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
                 userInput = GetString(message="Check Output for Contour Hatch")
                 if userInput == "n": # else just continue
                     return
-            # C:\Users\gaozj\Desktop\Angio\SyntheticAngio\ViewCapture20210928_005204001.jpg.png
-            cmd = " _Width 1896 _Height 1127 _TransparentBackgroud _Yes _Enter"
+            # The normal capture via viewport.ParentView.CaptureToBitmap is unable to capture the
+            # shaded effect of transparent project. Therefore, we use the 'ViewCaptureToFile'
+            cmd = " _TransparentBackgroud _Yes _Enter"
             rs.Command("-ViewCaptureToFile " + chr(34) + filePath + chr(34)+ cmd)
             # outFilePath = CaptureViewToFile(filePath, viewport)
             #-# Remove layer object from layer
             DeleteLayerObject() 
-        #if iRecord == 2:
-            # break
+        if iRecord == 2:
+             break
     saveStenosisInfor(saveInfor, inforSaveDir)
 
 if( __name__ == "__main__" ):
     # baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     baseDir = r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
-    batch_num = '1'
+    batch_num = '3'
     main(baseDir, defaultBranchesNum, batch_num, adjust=False)
