@@ -72,8 +72,8 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
             # -- vesselMeshes is a <python dict> with branch identifier as key,
             #    and <Rhino.Geometry.Mesh> as values
             try:
-                vesselBreps, vesselMeshes = GenerateVesselMesh(reconstructedCurves, stenosis_location, 
-                    effect_region, percentage, stenosis_flag)
+                vesselBreps, vesselStartBreps, vesselMeshes = uniformResult(*GenerateVesselMesh(reconstructedCurves, 
+                    stenosis_location, effect_region, percentage, stenosis_flag))
                 success = 1
             except:
                 print("Error!!!!")
@@ -162,6 +162,11 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
             contourCurves = CrateContourCurves(vesselBrep, receiveScreenPlane)            
             # -- AddHatch(curveObjects, receiveScreenPlane, colorCode, alpha)
             AddHatch(contourCurves, receiveScreenPlane, blackRGB, alpha=10)
+            if vessel_identifier!='major':
+                # Try to solve the problem that the minor vessel start is barely visable.
+                vesselStartBrep = vesselStartBreps[vessel_identifier]
+                contourCurves = CrateContourCurves(vesselStartBrep, receiveScreenPlane, interval=0.25) 
+                AddHatch(contourCurves, receiveScreenPlane, blackRGB, alpha=10)
             #-# Capture the file and save to folder
             filePath = os.path.join(saveDir, '{}_contour.png'.format(vessel_identifier))
             if debug:

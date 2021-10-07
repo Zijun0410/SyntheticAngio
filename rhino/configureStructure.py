@@ -138,17 +138,18 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
 
     # Iterate through branch and created pipe Brep
     preVesselBreps = {}
+    vesselStartBreps = {}
     for branch_identifier in list(reconstructedCurves.keys()):
         # Get the positions_param and positions_ra7dii under different settings
         if branch_identifier == 'major':
             if stenosis_flag:
                 # -- GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major)
-#                try:
+            # try:
                 positions_param, positions_radii = GenerateStenosis(stenosis_location, 
                     effect_region, percentage, baseline_radii_major)
-#                except:
-#                    print(stenosis_location, effect_region, percentage)
-#                    continue
+            # except:
+            #    print(stenosis_location, effect_region, percentage)
+            #    continue
             else:
                 # No stenosis
                 positions_radii = baseline_radii_major
@@ -158,12 +159,13 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
             positions_param = dedault_position_param
             positions_radii = nonMajorMatchRadii[branch_identifier]
         # Construct the Pipe brep
-#        try:
+        # try:
         preVesselBreps[branch_identifier] = AddPipe(reconstructedCurves[branch_identifier], positions_param, positions_radii, cap=2)
-#        except IndexError:
-#            print(stenosis_location, effect_region, percentage)
-#            continue
-#            
+        # except IndexError:
+        #    print(stenosis_location, effect_region, percentage)
+        #    continue
+        vesselStartBreps[branch_identifier] = StartPointSphere(reconstructedCurves[branch_identifier], radius=positions_radii[0], create_mesh=False)
+          
     #-# Prepare to update the vessel breps and the mesh to be created    
     majorBrep = preVesselBreps['major']
     vesselBreps = {}
@@ -176,6 +178,7 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
     vesselMeshes = {}
     meshArrayMajor = Rhino.Geometry.Mesh.CreateFromBrep(majorBrep, defaultMeshParams)
     vesselMeshes['major'] = meshArrayMajor[0]
+
 
     #-# Trim uncessary parts from the small branches by intercecting the main branch 
     #   and turn the output into a mesh
@@ -193,7 +196,7 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
         meshArrayNonMajor = Rhino.Geometry.Mesh.CreateFromBrep(keptBrep, defaultMeshParams)
         vesselMeshes[nonMajorIdentifier] = meshArrayNonMajor[0]
 
-    return preVesselBreps, vesselMeshes
+    return preVesselBreps, vesselStartBreps, vesselMeshes
 
 def DivideCurve(curveObject, segmentNum, return_points=True):
     """Helper function customized from the following link
