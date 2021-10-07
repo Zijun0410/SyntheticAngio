@@ -9,7 +9,7 @@
 %%% Last Update: Oct 5th 2021
 %%% Project: SyntheticAngio
 
-batch_num = 2; 
+batch_num = 3; 
 % Generated on Sep 30, 2021, 282 image groups in total
 % the distance of contour set to 0.15 and the alpha value of hatch is 1
 

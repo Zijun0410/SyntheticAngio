@@ -6,7 +6,7 @@ import Rhino
 import System
 import random # For random generator
 
-def AddPipe(curve_object, parameters, radii, blend_type=1, cap=1, fit=True):
+def AddPipe(curve_object, parameters, radii, cap=1, blend_type=1, fit=True):
     # An modificatiioin for the code from the following source
     # https://github.com/mcneel/rhinoscriptsyntax/blob/rhino-6.x/Scripts/rhinoscript/surface.py
 
@@ -159,7 +159,7 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
             positions_radii = nonMajorMatchRadii[branch_identifier]
         # Construct the Pipe brep
 #        try:
-        preVesselBreps[branch_identifier] = AddPipe(reconstructedCurves[branch_identifier], positions_param, positions_radii)
+        preVesselBreps[branch_identifier] = AddPipe(reconstructedCurves[branch_identifier], positions_param, positions_radii, cap=2)
 #        except IndexError:
 #            print(stenosis_location, effect_region, percentage)
 #            continue
@@ -186,12 +186,14 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
         tol = scriptcontext.doc.ModelAbsoluteTolerance
         cuttedBrep = branchBrep.Split(majorBrep, tol)
         keptBrep = cuttedBrep[0]
-        vesselBreps[nonMajorIdentifier] = keptBrep
+        # For the vessel breps, we do not used the major vessel trimmed one so that when teh countour
+        # are created, the color at the start of the minor vessels appears darker.
+        # vesselBreps[nonMajorIdentifier] = keptBrep
         # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Mesh_CreateFromBrep_1.htm
         meshArrayNonMajor = Rhino.Geometry.Mesh.CreateFromBrep(keptBrep, defaultMeshParams)
         vesselMeshes[nonMajorIdentifier] = meshArrayNonMajor[0]
 
-    return vesselBreps, vesselMeshes
+    return preVesselBreps, vesselMeshes
 
 def DivideCurve(curveObject, segmentNum, return_points=True):
     """Helper function customized from the following link

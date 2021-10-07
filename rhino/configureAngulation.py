@@ -72,7 +72,7 @@ def offsetPlane(plane, distance):
     return newPlane
 
 def ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
-    distanceSourceToDetector, planeSize=120):
+    distanceSourceToDetector, planeSize=100):
     """
     Configure the Receive plane and screen based on the visualization plane, 
     and parameter of distance from the .dcm metadata

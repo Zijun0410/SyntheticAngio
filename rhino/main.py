@@ -90,7 +90,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
         #-# Config Angle and Receive Screen 
         visualizatioinPlane, lightVector, Zplus = uniformResult(*ConfigAngulation(positionerPrimaryAngle, positionerSecondaryAngle))
         receiveScreenPlane, receiveScreenMesh = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
-            distanceSourceToDetector, planeSize=130)
+            distanceSourceToDetector, planeSize=110)
 
         #-# Set Active Viewport for Rhino
         viewport = setView(lightVector, receiveScreenPlane, distanceSourceToPatient, Zplus)
@@ -116,10 +116,10 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
         HatchProjection(stenosisMesh, receiveScreenPlane, viewport, blackRGB)
         #-# Save to the screenshot to file
         CaptureViewToFile(os.path.join(saveDir, 'stnosis.png'), viewport)
-        if debug:
-            userInput = GetString(message="Check Output for Stenosis Point")
-            if userInput == "n": # else just continue
-                return
+        # if debug:
+        #     userInput = GetString(message="Check Output for Stenosis Point")
+        #     if userInput == "n": # else just continue
+        #         return
         #-# Remove the object from the layer
         DeleteLayerObject()
 
@@ -130,10 +130,10 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
         HatchProjection(startPointMesh, receiveScreenPlane, viewport, blackRGB)
         #-# Save to File
         CaptureViewToFile(os.path.join(saveDir, 'start.png'), viewport)
-        if debug:
-            userInput = GetString(message="Check Output for Vessel Start Point")
-            if userInput == "n": # else just continue
-                return
+        # if debug:
+        #     userInput = GetString(message="Check Output for Vessel Start Point")
+        #     if userInput == "n": # else just continue
+        #         return
         #-# Remove the object from layer
         DeleteLayerObject()
 
@@ -148,10 +148,10 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
             #-# Capture the file and save to folder
             filePath = os.path.join(saveDir, '{}.png'.format(vessel_identifier))
             outFilePath = CaptureViewToFile(filePath, viewport)
-            if debug:
-                userInput = GetString(message="Check Output for Vessel Mesh")
-                if userInput == "n": # else just continue
-                    return
+            # if debug:
+            #     userInput = GetString(message="Check Output for Vessel Mesh")
+            #     if userInput == "n": # else just continue
+            #         return
             #-# Remove layer object from layer
             DeleteLayerObject() 
             ### STEP 2 ###
@@ -183,5 +183,5 @@ if( __name__ == "__main__" ):
     # baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     baseDir = r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
-    batch_num = '3'
-    main(baseDir, defaultBranchesNum, batch_num, adjust=False)
+    batch_num = '2' # 2 is used for debug
+    main(baseDir, defaultBranchesNum, batch_num, adjust=False, debug=True)

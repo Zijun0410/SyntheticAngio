@@ -26,7 +26,7 @@ def HatchProjection(targetMesh, receiveScreenPlane, viewport, colorCode, alpha=2
     meshOutline = meshOutlines[0].ToPolylineCurve()
     AddHatch(meshOutline, receiveScreenPlane, colorCode, alpha)
 
-def AddHatch(curveObjects, receiveScreenPlane, colorCode, alpha, index=0):
+def AddHatch(curveObjects, receiveScreenPlane, colorCode, alpha, alpha_init=None, count_init=None, index=0):
     """Helper function
     Creates hatch objects for closed planar curves
     Inputs: 
@@ -47,11 +47,29 @@ def AddHatch(curveObjects, receiveScreenPlane, colorCode, alpha, index=0):
     colorGradient.StartPoint = receiveScreenPlane.Origin
     colorGradient.EndPoint = receiveScreenPlane.Origin + receiveScreenPlane.XAxis
     colorGradient.GradientType = Rhino.Display.GradientType.Linear
+
+    heavy_init_color = 0
+    if alpha_init is not None and count_init is not None:
+        heavy_init_color = 1
+        initColorStops = [Rhino.Display.ColorStop(CreateColor(colorCode, alpha_init), 0), 
+        Rhino.Display.ColorStop(CreateColor(colorCode, alpha_init), 1)]
+        initColorGradient = Rhino.Display.ColorGradient()
+        initColorGradient.SetColorStops(initColorStops)
+        initColorGradient.StartPoint = receiveScreenPlane.Origin
+        initColorGradient.EndPoint = receiveScreenPlane.Origin + receiveScreenPlane.XAxis
+        initColorGradient.GradientType = Rhino.Display.GradientType.Linear
+
+    hatch_count = 1
     for hatch in hatches:
-        # Rhino.Geometry.Hatch.SetGradientFill(<Rhino.Display.ColorGradient>)
-        hatch.SetGradientFill(colorGradient)
+        if heavy_init_color and hatch_count<count_init:
+            hatch.SetGradientFill(initColorGradient)
+        else:
+            # Rhino.Geometry.Hatch.SetGradientFill(<Rhino.Display.ColorGradient>)
+            hatch.SetGradientFill(colorGradient)
         #-# For rhino to show the hatch: Rhino.RhinoDoc.ActiveDoc.Objects.AddHatch(hatch)
         scriptcontext.doc.Objects.AddHatch(hatch)
+        hatch_count += 1
+
     # scriptcontext.doc.Views.RedrawEnabled = False 
     scriptcontext.doc.Views.Redraw() 
     #-# For grasshopper to preview: Rhino.Geometry.Hatch.CreateDisplayGeometry()
