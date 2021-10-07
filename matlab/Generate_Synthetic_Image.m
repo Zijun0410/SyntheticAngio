@@ -5,14 +5,16 @@
 % Generate the infor_saver_cell which contains
 %     angio_struct with the following fields
 %         angio_struct.meta_data = struct();
-%         angio_struct.stenosis_data = struct();
+%         angio_struct.stenosis_summary = table();
 %         angio_struct.endpoint_data = struct();
 %         angio_struct.segment = struct();
 %         angio_struct.volumn = struct();
 %         angio_struct.branch_identifiers = branch_identifiers;
 %         angio_struct.ref_size = ref_size;
+% Obtain stenosis_summary_tab
 Load_Rhino_Image
-
+debug_flag = 0;
+%%
 for iVess=1:length(infor_saver_cell)
     %%
     %-% Load information into angio_struct
@@ -25,8 +27,6 @@ for iVess=1:length(infor_saver_cell)
     %-% Generate Synthetic angiogram images
     gaussian_factor = 1;
     rescale_factor = 0.3;
-    border_threshold = 0.5;
-    adjust_factor_1 = 0.02;
     random_factor = 100;
     background = angio_struct.background;
     for identifier = angio_struct.branch_identifiers
@@ -37,7 +37,7 @@ for iVess=1:length(infor_saver_cell)
         vessel_shade_mask = volumn_image<0.99;
         background_shade = zeros(512,512)+1;
         background_shade(vessel_shade_mask) = background(vessel_shade_mask);
-        if debug;figure;imshow(background_shade);end
+        if debug_flag;figure;imshow(background_shade);end
         % The darker the backgound region (smaller the value), the less
         % vessel shade we need to add (smaller the value because we minus 
         % the shade at the next step). 
@@ -49,9 +49,20 @@ for iVess=1:length(infor_saver_cell)
         blurred_shade = imgaussfilt(bakcground_corrected_vessel_shade, gaussian_factor);
         background = background - blurred_shade - rand(1)/random_factor;
     end
-    image_display = cat(3, angio_struct.background, background, angio_struct.real_image);
-    % visualize image in a horizental concatenated way
-    figure; montage(image_display,'size',[1 3]);
+    angio_struct.synthetic_image = background;
+    image_display = cat(3, angio_struct.background, angio_struct.synthetic_image, angio_struct.real_image);
+    % Visualize the background image, sythetic and real image
+    figure('visible','off');  fig = montage(image_display,'size',[1 3]);
+    montage_image_data = fig.CData;
+    % Write the montage image and angio_struct to folder
+    if ~isfolder(angio_struct.output_folder); mkdir(angio_struct.output_folder);end
+    imwrite(montage_image_data,fullfile(angio_struct.output_folder, 'montage.png'));
+    save(fullfile(angio_struct.output_folder, 'angio_struct.mat'),'angio_struct');
+    % Write relevant information to file
+    % 1. the synthetic image
+    imwrite(angio_struct.synthetic_image, fullfile(angio_struct.output_folder, 'synthetic.png'));
+    % 2. the stentosis information
+    writetable(angio_struct.stenosis_summary,fullfile(angio_struct.output_folder,'stenosis_infor.csv'),'Delimiter',',')  
 end
 
 %% 

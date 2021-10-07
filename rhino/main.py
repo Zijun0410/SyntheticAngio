@@ -15,7 +15,7 @@ import rhinoscriptsyntax as rs
 # https://github.com/mcneel/rhinoscriptsyntax/tree/rhino-6.x/Scripts/rhinoscript
 # https://developer.rhino3d.com/api/RhinoScriptSyntax/
 
-def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
+def main(baseDir, defaultBranchesNum, batch_num, adjust=False, debug=False):
     """
 
     """
@@ -53,11 +53,11 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
         #-# Generate Meshes
         reconstructedCurves = LoadCurveFromTxt(baseDir, defaultBranchesNum)
         #-# Generate Stenosis
-        # TODO: Change stenosis_flag into a random number between 0 and 1
+        # TODO: Change stenosis_num into a random number between 0 and 1
         success = 0
         while success == 0:
-            stenosis_flag = 1
-            if stenosis_flag:
+            stenosis_num = 1
+            if stenosis_num:
                 stenosis_location, effect_region, percentage = RandomStenosisGenerator()
                 # Random movement generator TODO
                 # reconstructedCurves = HeartMovementGenerator(reconstructedCurves)
@@ -65,7 +65,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
                 stenosis_location, effect_region, percentage = 0, 0, 0
     
             # Update Stenosis Infor Saver
-            infor_list = [stenosis_flag, stenosis_location, effect_region, percentage,
+            infor_list = [stenosis_num, stenosis_location, effect_region, percentage,
                 distanceSourceToPatient, distanceSourceToDetector, positionerPrimaryAngle, positionerSecondaryAngle]
             saveInfor[(str(iRecord), fileName)] = [str(i) for i in infor_list]
     
@@ -73,7 +73,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
             #    and <Rhino.Geometry.Mesh> as values
             try:
                 vesselBreps, vesselStartBreps, vesselMeshes = uniformResult(*GenerateVesselMesh(reconstructedCurves, 
-                    stenosis_location, effect_region, percentage, stenosis_flag))
+                    stenosis_location, effect_region, percentage, stenosis_num))
                 success = 1
             except:
                 print("Error!!!!")
@@ -90,7 +90,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
         #-# Config Angle and Receive Screen 
         visualizatioinPlane, lightVector, Zplus = uniformResult(*ConfigAngulation(positionerPrimaryAngle, positionerSecondaryAngle))
         receiveScreenPlane, receiveScreenMesh = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
-            distanceSourceToDetector, planeSize=110)
+            distanceSourceToDetector, planeSize=120)
 
         #-# Set Active Viewport for Rhino
         viewport = setView(lightVector, receiveScreenPlane, distanceSourceToPatient, Zplus)
@@ -98,16 +98,14 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
         #-# Set up layers
         AddLayer()
 
-        #-# Adjust the size of the view
-
         #-# Project the receiveScreen and hatch as white.
         whiteRGB = (255, 255, 255)
         # -- HatchProjection(targetMesh, receiveScreenPlane, viewport, colorCode, alpha=255, offset=0)
         HatchProjection(receiveScreenMesh, receiveScreenPlane, viewport, whiteRGB, offset=-1)
-        CaptureViewToFile(os.path.join(saveDir, 'view.png'), viewport, transparent=False)
         if adjust:
             return 
-
+        else:
+            CaptureViewToFile(os.path.join(saveDir, 'view.png'), viewport, transparent=False)
         #-# Project the stnosis point and hatch as black
         blackRGB = (0, 0, 0)
         ## TODO: Only when there are stenosis
@@ -115,7 +113,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
         stenosisMesh = StenosisSphere(reconstructedCurves['major'], stenosis_location)
         HatchProjection(stenosisMesh, receiveScreenPlane, viewport, blackRGB)
         #-# Save to the screenshot to file
-        CaptureViewToFile(os.path.join(saveDir, 'stnosis.png'), viewport)
+        CaptureViewToFile(os.path.join(saveDir, 'stnosis_{}.png'.format(stenosis_num)), viewport)
         # if debug:
         #     userInput = GetString(message="Check Output for Stenosis Point")
         #     if userInput == "n": # else just continue
@@ -165,7 +163,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
             if vessel_identifier!='major':
                 # Try to solve the problem that the minor vessel start is barely visable.
                 vesselStartBrep = vesselStartBreps[vessel_identifier]
-                contourCurves = CrateContourCurves(vesselStartBrep, receiveScreenPlane, interval=0.25) 
+                contourCurves = CrateContourCurves(vesselStartBrep, receiveScreenPlane, interval=0.4) 
                 AddHatch(contourCurves, receiveScreenPlane, blackRGB, alpha=10)
             #-# Capture the file and save to folder
             filePath = os.path.join(saveDir, '{}_contour.png'.format(vessel_identifier))
@@ -180,7 +178,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=True, debug=False):
             # outFilePath = CaptureViewToFile(filePath, viewport)
             #-# Remove layer object from layer
             DeleteLayerObject() 
-        if iRecord == 2:
+        if iRecord == 3:
              break
     saveStenosisInfor(saveInfor, inforSaveDir)
 
@@ -188,5 +186,5 @@ if( __name__ == "__main__" ):
     # baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     baseDir = r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
-    batch_num = '2' # 2 is used for debug
-    main(baseDir, defaultBranchesNum, batch_num, adjust=False, debug=True)
+    batch_num = '3' # 2 is used for debug
+    main(baseDir, defaultBranchesNum, batch_num, adjust=False, debug=False)

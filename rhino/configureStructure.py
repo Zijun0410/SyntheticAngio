@@ -142,7 +142,7 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
     for branch_identifier in list(reconstructedCurves.keys()):
         # Get the positions_param and positions_ra7dii under different settings
         if branch_identifier == 'major':
-            if stenosis_flag:
+            if stenosis_flag > 0:
                 # -- GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major)
             # try:
                 positions_param, positions_radii = GenerateStenosis(stenosis_location, 
@@ -189,14 +189,12 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
         tol = scriptcontext.doc.ModelAbsoluteTolerance
         cuttedBrep = branchBrep.Split(majorBrep, tol)
         keptBrep = cuttedBrep[0]
-        # For the vessel breps, we do not used the major vessel trimmed one so that when teh countour
-        # are created, the color at the start of the minor vessels appears darker.
-        # vesselBreps[nonMajorIdentifier] = keptBrep
+        vesselBreps[nonMajorIdentifier] = keptBrep
         # https://developer.rhino3d.com/api/RhinoCommon/html/M_Rhino_Geometry_Mesh_CreateFromBrep_1.htm
         meshArrayNonMajor = Rhino.Geometry.Mesh.CreateFromBrep(keptBrep, defaultMeshParams)
         vesselMeshes[nonMajorIdentifier] = meshArrayNonMajor[0]
 
-    return preVesselBreps, vesselStartBreps, vesselMeshes
+    return vesselBreps, vesselStartBreps, vesselMeshes
 
 def DivideCurve(curveObject, segmentNum, return_points=True):
     """Helper function customized from the following link
