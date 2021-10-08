@@ -4,3 +4,4 @@ notebook/.ipynb_checkpoints
 *.3dmbak
 demo/
 *.asv
+*.sublime-workspace
