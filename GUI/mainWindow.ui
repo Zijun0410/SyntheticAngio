@@ -98,7 +98,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLineEdit" name="lineEdit"/>
+            <widget class="QLineEdit" name="saveDirLineEdit"/>
            </item>
           </layout>
          </item>
@@ -163,16 +163,9 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="outputBrowseButton">
+            <widget class="QPushButton" name="browseSetButton">
              <property name="text">
-              <string>Browse</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="setButton">
-             <property name="text">
-              <string>Set</string>
+              <string>Browse/Set</string>
              </property>
             </widget>
            </item>
@@ -248,13 +241,6 @@
             <widget class="QLabel" name="label_6">
              <property name="text">
               <string>.dcm files</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="displayButton">
-             <property name="text">
-              <string>Display</string>
              </property>
             </widget>
            </item>
@@ -344,6 +330,13 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
+         <widget class="QPushButton" name="clearDotsButton">
+          <property name="text">
+           <string>Clear Dots</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="horizontalSpacer_2">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -364,16 +357,22 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="nextButton">
+         <widget class="QPushButton" name="saveButton">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
-           <string>Next</string>
+           <string>Save</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="saveButton">
+         <widget class="QPushButton" name="nextButton">
           <property name="text">
-           <string>Save</string>
+           <string>Next</string>
           </property>
          </widget>
         </item>
