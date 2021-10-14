@@ -1,31 +1,31 @@
 import os
 import torch.utils.data as torchData
 import numpy as np
-import xml.etree.ElementTree as ET
 from PIL import Image
-
-from dssd.structures.container import Container
-
-import torch.utils.data
-
+import pandas as pd
+import glob
 from dssd.structures.container import Container
 
 class SytheticDataset(torchData.Dataset):
-    def __init__(self, ..., transform=None, target_transform=None):
-        # as you would do normally
-        ...
+    def __init__(self, data_dir, batch_number, transform=None, target_transform=None):
+
+        # data_dir: <pathlib Path object>, the base dir where all the data were loaded
+        #          Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Sythetic_Output\')
+        # bacth_number: <python int>, the batch number 
+        self.box_radi = 10
+        self.ref_size = 512
+        self.data_dir = data_dir / f'{bacth_number}'
         self.transform = transform
         self.target_transform = target_transform
+        self.video_list = [Path(dir_path).stem for dir_path in glob.glob(os.path.join(self.data_dir, "*", ""))]
 
     def __getitem__(self, index):
+        video_name = self.video_list[index]
         # load the image as a PIL Image
-        # 'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Sythetic_Output\3\002 (10)_R'
-        image = ...
+        image = self._read_image(self.data_dir / video_name)
 
-        # load the bounding boxes in x1, y1, x2, y2 order.
-        boxes = np.array((N, 4), dtype=np.float32)
-        # and labels
-        labels = np.array((N, ), dtype=np.int64)
+        # load the labels and bounding boxes in x1, y1, x2, y2 order.
+        boxes, labels = _get_annotation(self.data_dir / video_name)
 
         if self.transform:
             image, boxes, labels = self.transform(image, boxes, labels)
@@ -33,101 +33,38 @@ class SytheticDataset(torchData.Dataset):
             boxes, labels = self.target_transform(boxes, labels)
         targets = Container(
             boxes=boxes,
-            labels=labels,
+            labels=labels
         )
         # return the image, the targets and the index in your dataset
         return image, targets, index
 
+    def _read_image(self, infor_dir):
+        image_file = infor_dir / "sythetic.png" 
+        image = Image.open(image_file).convert("L")
+        image = np.array(image)
+        return image
 
-class VOCDataset(torch.utils.data.Dataset):
-    class_names = ('__background__',
-                   'aeroplane', 'bicycle', 'bird', 'boat',
-                   'bottle', 'bus', 'car', 'cat', 'chair',
-                   'cow', 'diningtable', 'dog', 'horse',
-                   'motorbike', 'person', 'pottedplant',
-                   'sheep', 'sofa', 'train', 'tvmonitor')
+    def _get_annotation(self, infor_dir):
+        stenosis_df = pd.read_csv(infor_dir / "stenosis_infor.csv", )
+        boxes = [self._cal_box(x, y) for x, y in zip(stenosis_df['x_center'], stenosis_df['y_center'])]
+        lables = stenosis_df['degree']
+        return (np.array(boxes, dtype=np.float32),
+                np.array(labels, dtype=np.int64))
 
-    def __init__(self, data_dir, split, transform=None, target_transform=None, keep_difficult=False):
-        """Dataset for VOC data.
-        Args:
-            data_dir: the root of the VOC2007 or VOC2012 dataset, the directory contains the following sub-directories:
-                Annotations, ImageSets, JPEGImages, SegmentationClass, SegmentationObject.
-        """
-        self.data_dir = data_dir
-        self.split = split
-        self.transform = transform
-        self.target_transform = target_transform
-        image_sets_file = os.path.join(self.data_dir, "ImageSets", "Main", "%s.txt" % self.split)
-        self.ids = VOCDataset._read_image_ids(image_sets_file)
-        self.keep_difficult = keep_difficult
-
-        self.class_dict = {class_name: i for i, class_name in enumerate(self.class_names)}
-
-    def __getitem__(self, index):
-        image_id = self.ids[index]
-        boxes, labels, is_difficult = self._get_annotation(image_id)
-        if not self.keep_difficult:
-            boxes = boxes[is_difficult == 0]
-            labels = labels[is_difficult == 0]
-        image = self._read_image(image_id)
-        if self.transform:
-            image, boxes, labels = self.transform(image, boxes, labels)
-        if self.target_transform:
-            boxes, labels = self.target_transform(boxes, labels)
-        targets = Container(
-            boxes=boxes,
-            labels=labels,
-        )
-        return image, targets, index
-
-    def get_annotation(self, index):
-        image_id = self.ids[index]
-        return image_id, self._get_annotation(image_id)
+    def _cal_box(self, x_center, y_center):
+        x_min = np.floor(x_center - self.box_radi)
+        x_max = np.floor(x_center + self.box_radi)
+        y_min = np.floor(y_center - self.box_radi)
+        y_max = np.floor(y_center + self.box_radi)
+        return [x_min, y_min, x_max, y_max]
 
     def __len__(self):
         return len(self.ids)
 
-    @staticmethod
-    def _read_image_ids(image_sets_file):
-        ids = []
-        with open(image_sets_file) as f:
-            for line in f:
-                ids.append(line.rstrip())
-        return ids
-
-    def _get_annotation(self, image_id):
-        annotation_file = os.path.join(self.data_dir, "Annotations", "%s.xml" % image_id)
-        objects = ET.parse(annotation_file).findall("object")
-        boxes = []
-        labels = []
-        is_difficult = []
-        for obj in objects:
-            class_name = obj.find('name').text.lower().strip()
-            bbox = obj.find('bndbox')
-            # VOC dataset format follows Matlab, in which indexes start from 0
-            x1 = float(bbox.find('xmin').text) - 1
-            y1 = float(bbox.find('ymin').text) - 1
-            x2 = float(bbox.find('xmax').text) - 1
-            y2 = float(bbox.find('ymax').text) - 1
-            boxes.append([x1, y1, x2, y2])
-            labels.append(self.class_dict[class_name])
-            is_difficult_str = obj.find('difficult').text
-            is_difficult.append(int(is_difficult_str) if is_difficult_str else 0)
-
-        return (np.array(boxes, dtype=np.float32),
-                np.array(labels, dtype=np.int64),
-                np.array(is_difficult, dtype=np.uint8))
-
     def get_img_info(self, index):
-        img_id = self.ids[index]
-        annotation_file = os.path.join(self.data_dir, "Annotations", "%s.xml" % img_id)
-        anno = ET.parse(annotation_file).getroot()
-        size = anno.find("size")
-        im_info = tuple(map(int, (size.find("height").text, size.find("width").text)))
-        return {"height": im_info[0], "width": im_info[1]}
+        return {"height": self.ref_size, "width": self.ref_size}
 
-    def _read_image(self, image_id):
-        image_file = os.path.join(self.data_dir, "JPEGImages", "%s.jpg" % image_id)
-        image = Image.open(image_file).convert("RGB")
-        image = np.array(image)
-        return image
+    def get_annotation(self, index):
+        video_name = self.video_list[index]
+        return video_name, self._get_annotation(self.data_dir / video_name)
+
