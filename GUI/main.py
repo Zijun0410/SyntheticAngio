@@ -9,7 +9,7 @@ import numpy as np
 import glob
 import pydicom as dicom
 from mainWindow import Ui_MainWindow as AnnotationMainWindow 
-
+import pandas as pd
 
 class GraphicsScene(QtWidgets.QGraphicsScene):
     def __init__(self, parent=None):
@@ -60,10 +60,13 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
         self.output_home_dir = os.path.join('Z:','Projects','Angiogram','Data','Processed')
         self.saveDirLineEdit.setText(os.path.join(self.output_home_dir,'Zijun','Synthetic','BackGround_Image'))
         self.endPointButton.setChecked(True)
+        self.name_dict = {'stenosis':'frame','endpoint':'background'}
+        self.header = ['filename', 'load_dir', 'frame_num', 'x', 'y', 'PositionerPrimaryAngle','PositionerSecondaryAngle']
         self.get_identifier = lambda ep_button : 'endpoint' if ep_button.isChecked() else 'stenosis'
         self.saveDir = Path(self.saveDirLineEdit.text())
         self.framesaved = dict()
         self.frame_index = None
+        self.angle1, self.angle2 = None, None
 
         ## Load Dir Operations
         self.browseButton.clicked.connect(self.browsefoler)
@@ -150,7 +153,15 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
             #-# Read Dicom File and Frame Data
             dir_name = Path(self.videoPath[display_index]).name
             self.filenameLabel.setText(dir_name.split('.')[0])
-            dicom_read = dicom.dcmread(self.videoPath[display_index])   
+            dicom_read = dicom.dcmread(self.videoPath[display_index])
+            #-# Meta Data  
+            try:
+                self.angle1 = dicom_read.PositionerPrimaryAngle
+                self.angle2 = dicom_read.PositionerSecondaryAngle
+            except AttributeError as e:
+                self.angle1 = 'nan'
+                self.angle2 = 'nan'
+
             frame_array = dicom_read.pixel_array
             #-# Rescale the Pixel Values
             if 2**8 < np.amax(frame_array) < 2**16:
@@ -218,13 +229,9 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
             index = self.angioScene.get_index()
             self.saveDirParent.mkdir(parents=True, exist_ok=True)
             capturePixelImage.save(str(self.saveDirParent / f'{identifier}_{index}.png'), "PNG")
-            if identifier=='stenosis':
-                self.frameQPixmap.save(str(self.saveDirParent / f'frame_{index}.png'), "PNG")
-            else:
-                self.frameQPixmap.save(str(self.saveDirParent / f'background_{index}.png'), "PNG")
-
+            self.frameQPixmap.save(str(self.saveDirParent / f'{self.name_dict[identifier]}_{index}.png'), "PNG")
             csv_save_path = self.saveDirParent / f'{identifier}_{index}.csv'
-            self.save_information(csv_save_path)
+            self.save_information(csv_save_path, identifier)
             painterForCapture.end()
             self.angioScene.clearCircleItems()
             self.angioScene.increase_index()
@@ -239,20 +246,29 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
         self.saveDirParent.mkdir(parents=True, exist_ok=True)
         self.spinbox_increase()
 
-    def save_information(self, save_dir):
+    def save_information(self, save_dir, identifier):
         """
         Save the annotation details of a single frame to a csv file
         """
-        headline = ['filename','load_dir','frame_num','x','y']
         location_list = self.angioScene.get_location()
         with open(save_dir, 'w') as fileHandle:
-            fileHandle.write(','.join(headline) + '\n')
+            fileHandle.write(','.join(self.header) + '\n')
+            if len(location_list)==0 and identifier=='stenosis':
+                fileHandle.write(f'{self.filename_folder},{str(self.videoDir)},{self.frameHorizontalScrollBar.value()},')
+                location_pairs = ['nan','nan']
+                fileHandle.write(','.join(location_pairs)+',')
+                fileHandle.write(f'{self.angle1},{self.angle2}'+'\n')
+                
             for location_pairs in location_list:
                 fileHandle.write(f'{self.filename_folder},{str(self.videoDir)},{self.frameHorizontalScrollBar.value()},')
                 location_pairs = [str(i) for i in location_pairs]
-                fileHandle.write(','.join(location_pairs)+'\n')
+                fileHandle.write(','.join(location_pairs)+',')
+                fileHandle.write(f'{self.angle1},{self.angle2}'+'\n')
 
     def clearFile(self):
+        """
+        Clear all the files in the folder
+        """
         if self.saveDirParent.is_dir():
             dlg = QtWidgets.QMessageBox(self)
             dlg.setWindowTitle("Warning")
@@ -269,12 +285,54 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
         """
         Summary all the information inside a saving dir and save to a csv file
         """
-        return 0
-        all_file_folder = glob.glob(os.path.join(self.save_video_folder, "*", ""))
-        for i, folder in enumerate(all_file_folder):
-            # get all the csv files
-            csv_file_name = glob.glob(os.path.join(self.save_video_folder, "*.csv"))
+        import pandas as pd
+        import csv
 
+        all_file_folder = glob.glob(os.path.join(self.save_video_folder, "*", ""))
+        #-# Initate the summary dataframe
+        summary_pd = pd.DataFrame.from_dict(dict(zip(self.header, [[]]*len(self.header))))
+        for i, folder in enumerate(all_file_folder):
+            #-# get all the csv files
+            csv_file_names = glob.glob(os.path.join(folder, "*.csv"))
+            for csv_file in csv_file_names:
+                #-# extract information
+                identifier_index = Path(csv_file).name.split('_')
+                identifier = identifier_index[0]
+                index = identifier_index[1].split('.')[0]
+                background = f'{self.name_dict[identifier]}_{index}.png'
+                annotate = f'{identifier}_{index}.png'
+                #-# Read in the csv data
+                data_in = pd.read_csv(csv_file)
+                #-# Add additional information
+                data_in['identifier'] = identifier
+                data_in['index'] = index
+                data_in['background'] = background
+                data_in['annotate'] = annotate
+                data_in['save_dir'] = str(folder)
+                #-# Read in angle information 
+                if 'PositionerPrimaryAngle' not in data_in.columns:
+                    file_name = data_in['filename'][0]
+                    dicom_file = Path(data_in['load_dir'][0]) / f'{file_name}.dcm'
+                    dicom_read = dicom.dcmread(dicom_file)   
+                    try:
+                        data_in['PositionerPrimaryAngle'] = dicom_read.PositionerPrimaryAngle
+                        data_in['PositionerSecondaryAngle'] = dicom_read.PositionerSecondaryAngle
+                    except AttributeError as e:
+                        data_in['PositionerPrimaryAngle'] = 'nan'
+                        data_in['PositionerSecondaryAngle'] = 'nan'
+
+                #-# Add the data into summary dataframe
+                summary_pd = pd.concat([summary_pd, data_in])
+
+        #-# Drop duplicate rows if there are any
+        summary_df = summary_pd.drop_duplicates()
+
+        for identifier in list(self.name_dict.keys()):
+            identifier_df = summary_df.loc[summary_df['identifier']==identifier,:]
+            #-# Set save path and save
+            if not identifier_df.empty:
+                file_save_name = self.saveDir / f'{self.save_video_folder.name}_{identifier}.csv'
+                identifier_df.to_csv(file_save_name, index=False)
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
