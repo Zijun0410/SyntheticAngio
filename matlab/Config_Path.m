@@ -19,7 +19,6 @@ real_image_path = fullfile(turbo,'Projects','Angiogram','Data','Processed',...
     'results', 'preprocessed', 'UKR', 'Full');
 
 %-% Add relevant code to MATLAB path
-addpath(genpath(fullfile(base_code_path, 'util')));
 addpath(genpath(fullfile(base_code_path, 'matlab')));
 
 

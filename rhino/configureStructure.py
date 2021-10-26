@@ -49,12 +49,15 @@ def get_radii(target_point, positions, baseline_radii_major):
     target_radii = ref_radii[0] - (target_point - ref_position[0])*(ref_radii[0] - ref_radii[1])/(ref_position[1] - ref_position[0])
     return target_radii
 
-def RandomStenosisGenerator(rng=1, position_range=(0,1), effect_range=(0.01, 0.05), percentage=(0,0.98)):
+def RandomStenosisGenerator(rng=1, position_range=(0,0.8), effect_range=(0.01, 0.05), 
+    percentages=[(0.2, 0.5),(0.5, 0.7),(0.5, 0.7),(0.7, 0.9)]):
     """
     """
+    random.seed(rng)
     stenosis_location = random.uniform(position_range[0], position_range[1])
     effect_region = random.uniform(effect_range[0], effect_range[1])
-    percentage = random.uniform(percentage[0], percentage[1])
+    percentage_range = random.choice(percentages)
+    percentage = random.uniform(percentage_range[0], percentage_range[1])
     return stenosis_location, effect_region, percentage
 
 def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major):
@@ -140,7 +143,7 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
     preVesselBreps = {}
     vesselStartBreps = {}
     for branch_identifier in list(reconstructedCurves.keys()):
-        # Get the positions_param and positions_ra7dii under different settings
+        # Get the positions_param and positions_radii under different settings
         if branch_identifier == 'major':
             if stenosis_flag > 0:
                 # -- GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major)
@@ -179,11 +182,11 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
     meshArrayMajor = Rhino.Geometry.Mesh.CreateFromBrep(majorBrep, defaultMeshParams)
     vesselMeshes['major'] = meshArrayMajor[0]
 
-
     #-# Trim uncessary parts from the small branches by intercecting the main branch 
     #   and turn the output into a mesh
     for nonMajorIdentifier in nonMajorIdentifiers:
         branchBrep = preVesselBreps[nonMajorIdentifier]
+        # Option 1
         # https://developer.rhino3d.com/5/api/RhinoCommon/html/M_Rhino_Geometry_Brep_Split.htm
         # https://searchcode.com/total-file/16042741/
         tol = scriptcontext.doc.ModelAbsoluteTolerance
@@ -194,7 +197,8 @@ def GenerateVesselMesh(reconstructedCurves, stenosis_location=0.3,
         meshArrayNonMajor = Rhino.Geometry.Mesh.CreateFromBrep(keptBrep, defaultMeshParams)
         vesselMeshes[nonMajorIdentifier] = meshArrayNonMajor[0]
 
-    return vesselBreps, vesselStartBreps, vesselMeshes
+    # return vesselBreps, vesselStartBreps, vesselMeshes
+    return preVesselBreps, vesselStartBreps, vesselMeshes
 
 def DivideCurve(curveObject, segmentNum, return_points=True):
     """Helper function customized from the following link

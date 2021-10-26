@@ -1,57 +1,50 @@
 __author__ = "zijung@umich.edu"
-__version__ = "2021.09.20"
+__version__ = "2021.10.25"
 
 import os
-
-
 from configureStructure import RandomStenosisGenerator, GenerateVesselMesh, StenosisSphere, StartPointSphere, CrateContourCurves
 from configureAngulation import ConfigAngulation, ConfigreceiveScreen, setView
 from configureLayer import AddLayer, DeleteLayerObject
 from configureHatch import HatchProjection, AddHatch
-from configureOperationIO import LoadCurveFromTxt, ReadMetaData, GetString, CaptureViewToFile, saveStenosisInfor, uniformResult
+from configureOperationIO import CaptureViewToFile, saveStenosisInfor, uniformResult, LoadCurveFromTxt, ReadMetaData, MetaValueCheck, GetString
 import rhinoscriptsyntax as rs
 
 # Some reference page 
 # https://github.com/mcneel/rhinoscriptsyntax/tree/rhino-6.x/Scripts/rhinoscript
 # https://developer.rhino3d.com/api/RhinoScriptSyntax/
 
-def main(baseDir, defaultBranchesNum, batch_num, adjust=False, debug=False):
+def main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit=False, side='R'):
     """
+    Load metadata from baseDir/Meta_Data/batch_id
+    Save Rhino output to baseDir/Rhino_Output/batch_id
 
     """
     #-# Read in metaData
-    metaData, recordNum = ReadMetaData(baseDir)
+    meta_infor = {'Debug':'meta_summary.csv', 'UKL':'meta_summary.csv', 'UoML':'UoM_Right_endpoint.csv'}
+    metaData, recordNum = ReadMetaData(baseDir, meta_infor[batch_id])
 
     #-# Initiate Stenosis Infor Saver
     saveInfor = {}
     #-# Dir for saving the stenosis information 
-    inforSaveDir = os.path.join(baseDir, 'Rhino_Output', batch_num)
+    inforSaveDir = os.path.join(baseDir, 'Rhino_Output', batch_id)
 
     #-# Loop through Records 
     for iRecord in range(recordNum):
         
-        #-# Get meta data of a record
-        fileName = metaData['FileName'][iRecord]
-        positionerPrimaryAngle = float(metaData['PositionerPrimaryAngle'][iRecord])
-        positionerSecondaryAngle = float(metaData['PositionerSecondaryAngle'][iRecord])
-        distanceSourceToDetector = float(metaData['DistanceSourceToDetector'][iRecord])
-        distanceSourceToPatient = float(metaData['DistanceSourceToPatient'][iRecord])
+        metaInfor, fileName = MetaValueCheck(metaData, iRecord, side)
+        positionerPrimaryAngle = metaInfor[0]
+        positionerSecondaryAngle = metaInfor[1]
+        distanceSourceToDetector = metaInfor[2]
+        distanceSourceToPatient = metaInfor[3]
         
         #-# Create save directory if not exist
-        saveDir = os.path.join(baseDir, 'Rhino_Output', batch_num, fileName)
+        saveDir = os.path.join(baseDir, 'Rhino_Output', batch_id, fileName)
         if not os.path.exists(saveDir):
             os.makedirs(saveDir)
-
-        #-# Value Check
-        # if value does not exist (-1 by defalut), then set as the mean value
-        # Code in noteboook/MetaData_Handling.ipynb
-        if distanceSourceToDetector == -1:
-            distanceSourceToDetector = 1040.3
-        if distanceSourceToPatient == -1:
-            distanceSourceToPatient = 776.5
         
         #-# Generate Meshes
         reconstructedCurves = LoadCurveFromTxt(baseDir, defaultBranchesNum)
+
         #-# Generate Stenosis
         # TODO: Change stenosis_num into a random number between 0 and 1
         success = 0
@@ -67,6 +60,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=False, debug=False):
             # Update Stenosis Infor Saver
             infor_list = [stenosis_num, stenosis_location, effect_region, percentage,
                 distanceSourceToPatient, distanceSourceToDetector, positionerPrimaryAngle, positionerSecondaryAngle]
+
             saveInfor[(str(iRecord), fileName)] = [str(i) for i in infor_list]
     
             # -- vesselMeshes is a <python dict> with branch identifier as key,
@@ -108,7 +102,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=False, debug=False):
             CaptureViewToFile(os.path.join(saveDir, 'view.png'), viewport, transparent=False)
         #-# Project the stnosis point and hatch as black
         blackRGB = (0, 0, 0)
-        ## TODO: Only when there are stenosis
+        
         # -- StenosisSphere(curveObject, stenosis_location, segmentNum=100, radius=1, create_mesh=True)
         stenosisMesh = StenosisSphere(reconstructedCurves['major'], stenosis_location)
         HatchProjection(stenosisMesh, receiveScreenPlane, viewport, blackRGB)
@@ -152,6 +146,7 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=False, debug=False):
             #         return
             #-# Remove layer object from layer
             DeleteLayerObject() 
+
             ### STEP 2 ###
             #-# Project the receiveScreen and hatch as white.
             HatchProjection(receiveScreenMesh, receiveScreenPlane, viewport, whiteRGB, offset=-1)
@@ -159,12 +154,14 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=False, debug=False):
             vesselBrep = vesselBreps[vessel_identifier]
             contourCurves = CrateContourCurves(vesselBrep, receiveScreenPlane)            
             # -- AddHatch(curveObjects, receiveScreenPlane, colorCode, alpha)
-            AddHatch(contourCurves, receiveScreenPlane, blackRGB, alpha=10)
+            AddHatch(contourCurves, receiveScreenPlane, blackRGB, alpha=11)
             if vessel_identifier!='major':
-                # Try to solve the problem that the minor vessel start is barely visable.
+                # Try to solve the problem that the minor vessel start portion is barely visable.
                 vesselStartBrep = vesselStartBreps[vessel_identifier]
-                contourCurves = CrateContourCurves(vesselStartBrep, receiveScreenPlane, interval=0.4) 
-                AddHatch(contourCurves, receiveScreenPlane, blackRGB, alpha=10)
+                contourCurvesBall = CrateContourCurves(vesselStartBrep, receiveScreenPlane, interval=0.4) 
+                AddHatch(contourCurvesBall, receiveScreenPlane, blackRGB, alpha=4)
+
+            ### STEP 3 ###
             #-# Capture the file and save to folder
             filePath = os.path.join(saveDir, '{}_contour.png'.format(vessel_identifier))
             if debug:
@@ -173,18 +170,19 @@ def main(baseDir, defaultBranchesNum, batch_num, adjust=False, debug=False):
                     return
             # The normal capture via viewport.ParentView.CaptureToBitmap is unable to capture the
             # shaded effect of transparent project. Therefore, we use the 'ViewCaptureToFile'
-            cmd = " _TransparentBackgroud _Yes _Enter"
+            cmd = " _TransparentBackgroud _Yes _DrawGrid _No _Enter"
             rs.Command("-ViewCaptureToFile " + chr(34) + filePath + chr(34)+ cmd)
-            # outFilePath = CaptureViewToFile(filePath, viewport)
+            # discarded: outFilePath = CaptureViewToFile(filePath, viewport)
             #-# Remove layer object from layer
             DeleteLayerObject() 
-        if iRecord == 3:
+        if limit and iRecord == 1:
              break
+
     saveStenosisInfor(saveInfor, inforSaveDir)
 
 if( __name__ == "__main__" ):
     # baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     baseDir = r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
-    batch_num = '3' # 2 is used for debug
-    main(baseDir, defaultBranchesNum, batch_num, adjust=False, debug=False)
+    batch_id = 'UoML' # Choose from {'Debug', 'UKL', 'UoML'}
+    main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit=False)

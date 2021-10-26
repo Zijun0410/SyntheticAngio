@@ -21,7 +21,7 @@ def ConfigAngulation(positionerPrimaryAngle, positionerSecondaryAngle,
                 the direction of the X-ray beam
             visualizatioinPlane: <Rhino.Geometry.Plane> A plane object 
                 where the receiving screen holds
-        """
+    """
     isocenter = Rhino.Geometry.Point3d(isocenter_x,isocenter_y,isocenter_z)
     reference_axis = Rhino.Geometry.Point3d(isocenter_x,isocenter_y-1,isocenter_z) - isocenter
     
@@ -66,9 +66,9 @@ def offsetPlane(plane, distance):
     newOrigin = plane.Origin + directionVector
     newPlane = Rhino.Geometry.Plane(newOrigin, plane.ZAxis)
     projectionTransform = Rhino.Geometry.Transform.PlanarProjection(plane)
-#    Xplus = plane.Origin + plane.XAxis
-#    Xplus.Transform(projectionTransform)
-#    newPlane.XAxis = Xplus
+    # Xplus = plane.Origin + plane.XAxis
+    # Xplus.Transform(projectionTransform)
+    # newPlane.XAxis = Xplus
     return newPlane
 
 def ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
