@@ -309,6 +309,7 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
                 data_in['background'] = background
                 data_in['annotate'] = annotate
                 data_in['save_dir'] = str(folder)
+                data_in['name_combine'] = data_in['filename'].astype(str) + '_' + data_in['frame_num'].astype(str)
                 #-# Read in angle information 
                 if 'PositionerPrimaryAngle' not in data_in.columns:
                     file_name = data_in['filename'][0]

@@ -7,6 +7,7 @@ import System
 from configureAngulation import viewportByName
 import random 
 import math
+random.seed(0)
 
 def GetString(message=None, defaultString=None, strings=None):
     """Pauses for user input of a string value
@@ -84,7 +85,7 @@ def MetaValueCheck(metaData, iRecord, side):
         fileName: <python string>
     """
     #-# The angleSampleListR data is obtained from the UKR dataset
-    random.seed(0)
+    
     angleSampleListR = [(41.1, 2.3), (21.1, 20.1), (-35.5, 0.4), (22.2, 20.7), 
         (-38.7, -0.7), (38.9, 0.2), (38.5, -0.1), (20.2, 20.2), (-30.6, -2.6), 
         (40.8, 23.7), (-31.6, 0.4), (40.8, 2.0), (19.8, 20.7), (-31.2, -1.5), 
@@ -144,7 +145,9 @@ def MetaValueCheck(metaData, iRecord, side):
         (21.6, 27.3), (-29.9, 2.3)]
 
     try:
-        fileName = metaData['filename'][iRecord]
+        filename = metaData['filename'][iRecord] 
+        fileIndex = str(metaData['frame_num'][iRecord])
+        fileName = filename + "_" + fileIndex[:-1]
     except Exception:
         fileName = metaData['FileName'][iRecord]
 

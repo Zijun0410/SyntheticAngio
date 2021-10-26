@@ -9,15 +9,19 @@
 %%% Last Update: Oct 5th 2021
 %%% Project: SyntheticAngio
 
-batch_num = 3; 
-% Generated on Sep 30, 2021, 282 image groups in total
-% the distance of contour set to 0.15 and the alpha value of hatch is 1
+if strcmp(batch_id,'UoMR')
+    meta_file_name = 'UoM_Right_endpoint.csv';
+elseif strcmp(batch_id,'UKR')
+    meta_file_name = 'meta_summary.csv';
+else
+    meta_file_name = 'something';
+end
 
 Config_Path
 
 %-% Some default setting
-image_load_dir = fullfile(base_data_path, 'Rhino_Output', num2str(batch_num));
-output_save_dir = fullfile(base_data_path, 'Sythetic_Output', num2str(batch_num));
+image_load_dir = fullfile(base_data_path, 'Rhino_Output', batch_id);
+output_save_dir = fullfile(base_data_path, 'Sythetic_Output', batch_id);
 if ~isfolder(output_save_dir)
     mkdir(output_save_dir)
 end
@@ -37,7 +41,7 @@ unique_image_cases = unique(stenosis_infors.fileName);
 
 %-% Load metedata generated from dicom file and manusal annotation
   % See the matlab scripts: Background Image Preparation
-meta_infors = readtable(fullfile(base_data_path, 'meta_summary.csv'));
+meta_infors = readtable(fullfile(base_data_path, 'Meta_Data', meta_file_name));
 
 %-% Initate the information saver
 infor_saver_cell = cell(size(stenosis_infors,1),1);
@@ -57,7 +61,12 @@ for iCase = 1:size(unique_image_cases,1)
    
     % Get case specifice stenosis_infor
     stenosis_infor = stenosis_infors(ismember(stenosis_infors.fileName,unique_image_cases{iCase}),:);
-    file_name = stenosis_infor.fileName{1};
+    if strcmp(batch_id,'UoMR')
+        file_name_dot = stenosis_infor.fileName{1};
+        file_name = file_name_dot(1:end-1);
+    else
+        file_name = stenosis_infor.fileName{1};
+    end
     angio_struct.file_name = file_name;
     angio_struct.output_folder = fullfile(output_save_dir, file_name);
     stenosis_detail_col_names = {'stenosis_location', 'effect_region', 'percentage', 'degree', 'identifier'};
@@ -83,9 +92,16 @@ for iCase = 1:size(unique_image_cases,1)
     file_png_folder = fullfile(image_load_dir, file_name);
     
     % Get the corresponding meta data and the center of catheter endpoint 
-    meta_infor = meta_infors(contains(meta_infors.FileName,file_name),:);
-    x_center = meta_infor.CenterX;
-    y_center = meta_infor.CenterY;    
+    if strcmp(batch_id,'UKR')
+        meta_infor = meta_infors(contains(meta_infors.FileName,file_name),:);
+        x_center = meta_infor.CenterX;
+        y_center = meta_infor.CenterY; 
+    else
+        meta_infor = meta_infors(contains(meta_infors.name_combine,file_name),:);
+        x_center = meta_infor.x;
+        y_center = meta_infor.y; 
+    end
+    
     angio_struct.endpoint_data.x_center = x_center;
     angio_struct.endpoint_data.y_center = y_center;
     

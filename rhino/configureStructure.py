@@ -50,10 +50,9 @@ def get_radii(target_point, positions, baseline_radii_major):
     return target_radii
 
 def RandomStenosisGenerator(rng=1, position_range=(0,0.8), effect_range=(0.01, 0.05), 
-    percentages=[(0.2, 0.5),(0.5, 0.7),(0.5, 0.7),(0.7, 0.9)]):
+    percentages=[(0.2, 0.5),(0.5, 0.7),(0.6, 0.7),(0.7, 0.9)]):
     """
     """
-    random.seed(rng)
     stenosis_location = random.uniform(position_range[0], position_range[1])
     effect_region = random.uniform(effect_range[0], effect_range[1])
     percentage_range = random.choice(percentages)

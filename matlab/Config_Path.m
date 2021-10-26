@@ -11,14 +11,16 @@ else
 end
 
 base_data_path = fullfile(turbo,'Projects','Angiogram','Data','Processed','Zijun','Synthetic');
-base_code_path = fullfile(turbo,'Users','zijung','Code','SyntheticAngio');
-% Z:\Datasets\Angiogram\UK\Matched\Right
-base_dicom_path = fullfile(turbo,'Datasets','Angiogram','UK','Matched','Right');
+base_code_path = fullfile(turbo,'Projects','Angiogram','Code','Zijun','SyntheticAngio');
+
+%-% Add relevant code to MATLAB path
+addpath(genpath(fullfile(base_code_path, 'matlab')));
+addpath(genpath(fullfile(base_code_path, 'matlab','util')));
+% Variables for Dimo
 % Z:\Projects\Angiogram\Data\Processed\results\preprocessed\UKR\Full\
 real_image_path = fullfile(turbo,'Projects','Angiogram','Data','Processed',...
     'results', 'preprocessed', 'UKR', 'Full');
 
-%-% Add relevant code to MATLAB path
-addpath(genpath(fullfile(base_code_path, 'matlab')));
-
-
+% Some variables used in Background_Image_Preparation.m
+% Z:\Datasets\Angiogram\UK\Matched\Right
+base_dicom_path = fullfile(turbo,'Datasets','Angiogram','UK','Matched','Right');

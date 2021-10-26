@@ -20,7 +20,7 @@ def main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit
 
     """
     #-# Read in metaData
-    meta_infor = {'Debug':'meta_summary.csv', 'UKL':'meta_summary.csv', 'UoML':'UoM_Right_endpoint.csv'}
+    meta_infor = {'Debug':'meta_summary.csv', 'UKR':'meta_summary.csv', 'UoMR':'UoM_Right_endpoint.csv'}
     metaData, recordNum = ReadMetaData(baseDir, meta_infor[batch_id])
 
     #-# Initiate Stenosis Infor Saver
@@ -184,5 +184,5 @@ if( __name__ == "__main__" ):
     # baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     baseDir = r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
-    batch_id = 'UoML' # Choose from {'Debug', 'UKL', 'UoML'}
+    batch_id = 'UoMR' # Choose from {'Debug', 'UKR', 'UoMR'}
     main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit=False)
