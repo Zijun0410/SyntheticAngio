@@ -5,6 +5,9 @@ import scriptcontext
 import Rhino
 import System
 import random # For random generator
+import math
+
+from configureAngulation import ISOCENTER
 
 def AddPipe(curve_object, parameters, radii, cap=1, blend_type=1, fit=True):
     # An modificatiioin for the code from the following source
@@ -49,15 +52,61 @@ def get_radii(target_point, positions, baseline_radii_major):
     target_radii = ref_radii[0] - (target_point - ref_position[0])*(ref_radii[0] - ref_radii[1])/(ref_position[1] - ref_position[0])
     return target_radii
 
-def RandomStenosisGenerator(rng=1, position_range=(0,0.8), effect_range=(0.01, 0.05), 
+def RandomStenosisGenerator(position_range=(0,0.8), effect_range=(0.01, 0.05), 
     percentages=[(0.2, 0.5),(0.5, 0.7),(0.6, 0.7),(0.7, 0.9)]):
     """
+    Randomly generate stenosis related-parameter
+    Input:
+        position_range: <python tuple>, a stenosis position range to choose from. 
+            0 map to the start point of major vesel. 1 maps to the end point.
+        effect_range: <python tuple>, a stenosis effect range to choose from.
+        percentages: <python list of tuples>, a percentage range to choose from.
+    Ouutput:
+        stenosis_location, effect_region, percentage
     """
     stenosis_location = random.uniform(position_range[0], position_range[1])
     effect_region = random.uniform(effect_range[0], effect_range[1])
     percentage_range = random.choice(percentages)
     percentage = random.uniform(percentage_range[0], percentage_range[1])
     return stenosis_location, effect_region, percentage
+
+
+def HeartMovementGenerator(reconstructedCurves, defaultBranches, min_scale=0.8, max_scale=1.2):
+    """
+    Generate twists of vessel centerline to mimic the effect heart movements
+    Pseudo Code
+        input: time from $0$ to $pi$, the isocenter
+        for points on a polyline
+            calculate the `distance` between a point and the isocenter
+            form a `vector` from isocenter to point
+            extend the `vector` by a `distance` factor and a time (cos) factor
+            obtain the `endpoint` and add to newpoints
+        reconstruct a polyline based on newpoints  
+    Inputs:
+        min_scale <python float>, the minimum adjust scale
+        max_scale <python float>, the maximum adjust scale
+        defaultBranches <python dict>, the branch index and identifier 
+        reconstructedCurves <python dict>, the branch identifier and Rhino.Geometry.Curve
+    """
+    random_time = random.uniform(0, math.pi)
+    isocenter = Rhino.Geometry.Point3d(ISOCENTER)
+    scale_range = max_scale - min_scale
+
+    reconstructedModeCurves = {}
+    for identifier in list(defaultBranches.values()):
+        curveObject = reconstructedCurves[identifier]
+        dividedPoints = DivideCurve(curveObject, segmentNum=80)
+        rescaledPoints = []
+        for pointObject in dividedPoints:
+            dist = isocenter.DistanceTo(pointObject)
+            scale_factor = min_scale + math.sin(random_time)*scale_range
+            # scale_factor is a value in range (min_scale, max_scale)
+            adjust_distance = dist*scale_factor
+            ptVector = (pointObject - isocenter)*adjust_distance
+            adjust_endpoint = isocenter + ptVector
+            rescaledPoints.append(adjust_endpoint)
+        reconstructedModeCurves[identifier] = Rhino.Geometry.Curve.CreateControlPointCurve(rescaledPoints)
+    return reconstructedModeCurves
 
 def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major):
     """
@@ -67,7 +116,7 @@ def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radi
                         radius of the major vessl curve when there are no stenosis
         stenosis_location: float between (0, 1), representing the point where stenosis locate
         effect_region: float the effect region of stenosis
-        percentage: float between (0, 1), %DS, a classcial measure of stenosis
+        percentage: float between (0, 1), %DS, a classcial measurement of stenosis
     """
     updated_radii_major = baseline_radii_major[:]
 

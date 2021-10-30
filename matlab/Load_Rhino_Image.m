@@ -3,37 +3,16 @@
 %%%  1. The bounding box of stenosis region
 %%%  2. The start point of vessel structure
 %%%  3. The binary and grayscale mask of different branches
-%%%  
 
-%%% Author: Zijun Gao
-%%% Last Update: Oct 5th 2021
-%%% Project: SyntheticAngio
 
-if strcmp(batch_id,'UoMR')
-    meta_file_name = 'UoM_Right_endpoint.csv';
-elseif strcmp(batch_id,'UKR')
-    meta_file_name = 'meta_summary.csv';
-else
-    meta_file_name = 'something';
-end
 
-Config_Path
 
-%-% Some default setting
-image_load_dir = fullfile(base_data_path, 'Rhino_Output', batch_id);
-output_save_dir = fullfile(base_data_path, 'Sythetic_Output', batch_id);
-if ~isfolder(output_save_dir)
-    mkdir(output_save_dir)
-end
 
-ref_size = 512;
-% meta_data_dir = fullfile(base_data_path, 'Meta_Data');
-branch_identifiers = {'major', 'branch_1', 'branch_2', 'branch_3', 'branch_4', 'branch_5'};
+
 
 %-% Load stenosis infor generated from Rhino-python scripts
 stenosis_data = readtable(fullfile(image_load_dir, 'stnosis_infor.csv'));
 stenosis_infors = sortrows(stenosis_data,1);
-% TODO: modify here for future change
 stenosis_infors.Properties.VariableNames = {'index', 'fileName', 'stenosis_flag', ...
     'stenosis_location', 'effect_region', 'percentage', 'distanceSourceToDetector',... 
     'distanceSourceToPatient', 'positionerPrimaryAngle', 'positionerSecondaryAngle'};
@@ -48,7 +27,8 @@ infor_saver_cell = cell(size(stenosis_infors,1),1);
 %%
 %-% Iterate through the files
 stenosis_summary_tab = [];
-for iCase = 1:size(unique_image_cases,1)
+%%
+for iCase = 199:size(unique_image_cases,1)
     %% 
     %-% Initate AngioStruct
     angio_struct = struct();
@@ -97,9 +77,12 @@ for iCase = 1:size(unique_image_cases,1)
         x_center = meta_infor.CenterX;
         y_center = meta_infor.CenterY; 
     else
-        meta_infor = meta_infors(contains(meta_infors.name_combine,file_name),:);
-        x_center = meta_infor.x;
-        y_center = meta_infor.y; 
+        meta_infor = meta_infors(ismember(meta_infors.name_combine,file_name),:);
+        if length(meta_infor.x) >1
+            disp('More than one match, check here!')
+        end
+        x_center = meta_infor.x(1);
+        y_center = meta_infor.y(1); 
     end
     
     angio_struct.endpoint_data.x_center = x_center;
@@ -123,7 +106,6 @@ for iCase = 1:size(unique_image_cases,1)
         angio_struct.volumn.(identifier_cell{1}) = preprocessRhinoImage(...
             fullfile(file_png_folder, strcat(identifier_cell{1}, '_contour.png')), ...
             receive_screen_mask, x_center, y_center, ref_size, start_image);
-        
     end
     %-% Get the position of the stenosis
     loacation_detail_col_names = {'x_center', 'y_center'};
@@ -133,9 +115,15 @@ for iCase = 1:size(unique_image_cases,1)
         stnosis_resized = getMaskedImage(receive_screen_mask, stnosis_raw, ref_size)>0.5;  
         stnosis_image = recreateMatchedImage(x_center, y_center, ref_size, ...
             start_image, stnosis_resized);
-        match_boundingbox = regionprops(imcomplement(stnosis_image), 'BoundingBox').BoundingBox;
-        loacation_detail(iStenosis, 1) = match_boundingbox(1)+match_boundingbox(3)/2;
-        loacation_detail(iStenosis, 2) = match_boundingbox(2)+match_boundingbox(4)/2;        
+        if sum(stnosis_image,'all')==ref_size^2
+            % if there qre no stenosis in the image, set to default value -1
+            loacation_detail(iStenosis, 1) = -1;
+            loacation_detail(iStenosis, 2) = -1;
+        else
+            match_boundingbox = regionprops(imcomplement(stnosis_image), 'BoundingBox').BoundingBox;
+            loacation_detail(iStenosis, 1) = match_boundingbox(1)+match_boundingbox(3)/2;
+            loacation_detail(iStenosis, 2) = match_boundingbox(2)+match_boundingbox(4)/2;            
+        end
     end
     loacation_detail = array2table(loacation_detail, 'VariableNames', ...
         loacation_detail_col_names);

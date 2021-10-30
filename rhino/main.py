@@ -53,7 +53,7 @@ def main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit
             if stenosis_num:
                 stenosis_location, effect_region, percentage = RandomStenosisGenerator()
                 # Random movement generator TODO
-                # reconstructedCurves = HeartMovementGenerator(reconstructedCurves)
+                reconstructedCurves = HeartMovementGenerator(reconstructedCurves, defaultBranchesNum)
             else:
                 stenosis_location, effect_region, percentage = 0, 0, 0
     
@@ -184,5 +184,5 @@ if( __name__ == "__main__" ):
     # baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     baseDir = r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
-    batch_id = 'UoMR' # Choose from {'Debug', 'UKR', 'UoMR'}
+    batch_id = 'UKR' # Choose from {'Debug', 'UKR', 'UoMR'}
     main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit=False)

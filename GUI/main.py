@@ -58,10 +58,12 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
         self.setup_view_scene()
         self.data_home_dir = os.path.join('Z:','Datasets','Angiogram')
         self.output_home_dir = os.path.join('Z:','Projects','Angiogram','Data','Processed')
+        self.meta_save_dir = Path(os.path.join(self.output_home_dir,'Zijun','Synthetic','Meta_Data'))
         self.saveDirLineEdit.setText(os.path.join(self.output_home_dir,'Zijun','Synthetic','BackGround_Image'))
         self.endPointButton.setChecked(True)
         self.name_dict = {'stenosis':'frame','endpoint':'background'}
-        self.header = ['filename', 'load_dir', 'frame_num', 'x', 'y', 'PositionerPrimaryAngle','PositionerSecondaryAngle']
+        self.header = ['filename', 'load_dir', 'frame_num', 'x', 'y', 
+              'PositionerPrimaryAngle','PositionerSecondaryAngle','DistanceSourceToDetector', 'DistanceSourceToPatient']
         self.get_identifier = lambda ep_button : 'endpoint' if ep_button.isChecked() else 'stenosis'
         self.saveDir = Path(self.saveDirLineEdit.text())
         self.framesaved = dict()
@@ -154,14 +156,21 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
             dir_name = Path(self.videoPath[display_index]).name
             self.filenameLabel.setText(dir_name.split('.')[0])
             dicom_read = dicom.dcmread(self.videoPath[display_index])
-            #-# Meta Data  
+            #-# Meta Data: Angulation 
             try:
                 self.angle1 = dicom_read.PositionerPrimaryAngle
                 self.angle2 = dicom_read.PositionerSecondaryAngle
             except AttributeError as e:
                 self.angle1 = 'nan'
                 self.angle2 = 'nan'
-
+            #-# Meta Data: Distance
+            try:
+                self.dsd = dicom_read.DistanceSourceToDetector
+                self.dsp = dicom_read.DistanceSourceToPatient
+            except Exception as e:
+                self.dsd = 'nan'
+                self.dsp = 'nan'
+            #-# Obtain Image Pixel Arrays
             frame_array = dicom_read.pixel_array
             #-# Rescale the Pixel Values
             if 2**8 < np.amax(frame_array) < 2**16:
@@ -241,10 +250,19 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
             self.frameHorizontalScrollBar.setValue(self.frameHorizontalScrollBar.value()+1)
 
     def empty(self):
-        # The quality of the file is not satisfying. Create a empty folder to take the position for
+        """
+        When the quality of the file is not satisfying, create a empty folder to take the position for
         # folder counting and move to the next file
+        """
         self.saveDirParent.mkdir(parents=True, exist_ok=True)
         self.spinbox_increase()
+
+    def process_folder(self, folder):
+        """
+        Return the path that exludes the root directory (Z:)
+        """
+        folder_parts = list(Path(folder).parts)
+        return '_'.join(folder_parts[1:])
 
     def save_information(self, save_dir, identifier):
         """
@@ -253,17 +271,19 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
         location_list = self.angioScene.get_location()
         with open(save_dir, 'w') as fileHandle:
             fileHandle.write(','.join(self.header) + '\n')
+
             if len(location_list)==0 and identifier=='stenosis':
                 fileHandle.write(f'{self.filename_folder},{str(self.videoDir)},{self.frameHorizontalScrollBar.value()},')
                 location_pairs = ['nan','nan']
                 fileHandle.write(','.join(location_pairs)+',')
-                fileHandle.write(f'{self.angle1},{self.angle2}'+'\n')
-                
+                fileHandle.write(f'{self.angle1},{self.angle2},')
+                fileHandle.write(f'{self.dsd},{self.dsp}'+'\n')
             for location_pairs in location_list:
                 fileHandle.write(f'{self.filename_folder},{str(self.videoDir)},{self.frameHorizontalScrollBar.value()},')
                 location_pairs = [str(i) for i in location_pairs]
                 fileHandle.write(','.join(location_pairs)+',')
-                fileHandle.write(f'{self.angle1},{self.angle2}'+'\n')
+                fileHandle.write(f'{self.angle1},{self.angle2},')
+                fileHandle.write(f'{self.dsd},{self.dsp}'+'\n')
 
     def clearFile(self):
         """
@@ -279,7 +299,6 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
             if button == QtWidgets.QMessageBox.Yes:
                 [f.unlink() for f in self.saveDirParent.glob("*") if f.is_file()]
                 self.framesaved = dict()
-
 
     def summary(self):
         """
@@ -303,14 +322,16 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
                 annotate = f'{identifier}_{index}.png'
                 #-# Read in the csv data
                 data_in = pd.read_csv(csv_file)
+
                 #-# Add additional information
                 data_in['identifier'] = identifier
                 data_in['index'] = index
                 data_in['background'] = background
                 data_in['annotate'] = annotate
-                data_in['save_dir'] = str(folder)
+                # Record the file save dir, for 
+                data_in['save_dir'] = self.process_folder(folder)
                 data_in['name_combine'] = data_in['filename'].astype(str) + '_' + data_in['frame_num'].astype(str)
-                #-# Read in angle information 
+                #-# Read in angle information and distance information
                 if 'PositionerPrimaryAngle' not in data_in.columns:
                     file_name = data_in['filename'][0]
                     dicom_file = Path(data_in['load_dir'][0]) / f'{file_name}.dcm'
@@ -322,6 +343,15 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
                         data_in['PositionerPrimaryAngle'] = 'nan'
                         data_in['PositionerSecondaryAngle'] = 'nan'
 
+                    if 'DistanceSourceToDetector' not in data_in.columns:
+                        try:
+                            data_in['DistanceSourceToDetector'] = dicom_read.DistanceSourceToDetector
+                            data_in['DistanceSourceToPatient'] = dicom_read.DistanceSourceToPatient
+                        except Exception as e:
+                            data_in['DistanceSourceToDetector'] = 'nan'
+                            data_in['DistanceSourceToPatient'] = 'nan' 
+                #-# Modify existinig information
+                data_in['load_dir'] = data_in['load_dir'].map(self.process_folder)                       
                 #-# Add the data into summary dataframe
                 summary_pd = pd.concat([summary_pd, data_in])
 
@@ -330,11 +360,16 @@ class MainWindow(QtWidgets.QMainWindow, AnnotationMainWindow):
 
         for identifier in list(self.name_dict.keys()):
             identifier_df = summary_df.loc[summary_df['identifier']==identifier,:]
-            #-# Set save path and save
+            if identifier == 'endpoint':
+                # There should be one and only one endpoint, but could be multiple stenosis
+                identifier_df = identifier_df.drop_duplicates(subset=['name_combine'])
+            #-# Set save path and save to csv files
             if not identifier_df.empty:
                 file_save_name = self.saveDir / f'{self.save_video_folder.name}_{identifier}.csv'
+                meta_save_path = self.meta_save_dir / f'{self.save_video_folder.name}_{identifier}.csv'
                 identifier_df.to_csv(file_save_name, index=False)
-
+                identifier_df.to_csv(meta_save_path, index=False)
+                
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     mainWindow = MainWindow()

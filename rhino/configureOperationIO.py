@@ -147,7 +147,8 @@ def MetaValueCheck(metaData, iRecord, side):
     try:
         filename = metaData['filename'][iRecord] 
         fileIndex = str(metaData['frame_num'][iRecord])
-        fileName = filename + "_" + fileIndex[:-1]
+        fileIndexInt = fileIndex.split('.')[0]
+        fileName = filename + "_" + fileIndexInt
     except Exception:
         fileName = metaData['FileName'][iRecord]
 

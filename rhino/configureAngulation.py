@@ -6,12 +6,13 @@ import math
 import System
 import scriptcontext
 
+ISOCENTER = (8.5, -10.5, 50)
+
 def ConfigAngulation(positionerPrimaryAngle, positionerSecondaryAngle,
-    isocenter_x = 8.5, isocenter_y = -10.5, isocenter_z = 50):
+    isocenter_x = ISOCENTER[0], isocenter_y = ISOCENTER[1], isocenter_z = ISOCENTER[2]):
     """
-    This function sets up  the angulation based on 
-    the primary and secondary angles, returns the direction
-    where the light comes in and the visualization plane 
+    Set up the angulation based on the primary and secondary angles,
+    returns the direction where the light comes in and the visualization plane 
     that holds the projection
         Inputs:
             positionerPrimaryAngle: The primary rotation angle
