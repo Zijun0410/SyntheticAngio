@@ -8,6 +8,8 @@ from configureAngulation import viewportByName
 import random 
 import math
 random.seed(0)
+from configureAngulation import ISOCENTER
+
 
 def GetString(message=None, defaultString=None, strings=None):
     """Pauses for user input of a string value
@@ -145,10 +147,12 @@ def MetaValueCheck(metaData, iRecord, side):
         (21.6, 27.3), (-29.9, 2.3)]
 
     try:
-        filename = metaData['filename'][iRecord] 
-        fileIndex = str(metaData['frame_num'][iRecord])
-        fileIndexInt = fileIndex.split('.')[0]
-        fileName = filename + "_" + fileIndexInt
+        # filename = metaData['filename'][iRecord] 
+        # fileIndex = str(metaData['frame_num'][iRecord])
+        # fileIndexInt = fileIndex.split('.')[0]
+        # fileName = filename + "_" + fileIndexInt
+        # Get the unique identifier
+        fileName = metaData['name_combine'][iRecord]
     except Exception:
         fileName = metaData['FileName'][iRecord]
 
@@ -158,7 +162,7 @@ def MetaValueCheck(metaData, iRecord, side):
         positionerSecondaryAngle = float(metaData['PositionerSecondaryAngle'][iRecord])
         # Only pass the assert when: 1. assert not (False or False)
         #                            2. assert (True and True)
-        assert not ( math.isnan(positionerPrimaryAngle) or math.isnan(positionerSecondaryAngle)) 
+        assert not (math.isnan(positionerPrimaryAngle) or math.isnan(positionerSecondaryAngle)) 
         assert (positionerSecondaryAngle != -1 and positionerPrimaryAngle != -1)
     except Exception:
         if side=='L':
@@ -177,16 +181,21 @@ def MetaValueCheck(metaData, iRecord, side):
     try:
         distanceSourceToDetector = float(metaData['DistanceSourceToDetector'][iRecord])
         assert distanceSourceToDetector != -1
+        assert not math.isnan(distanceSourceToDetector)
     except Exception as e:
-        distanceSourceToDetector = 1040.3    
+        random_noise = random.uniform(-2, 2)
+        distanceSourceToDetector = round(1040.3 + random_noise, 2)
 
     try:
         distanceSourceToPatient = float(metaData['DistanceSourceToPatient'][iRecord])
         assert distanceSourceToPatient != -1
+        assert not math.isnan(distanceSourceToPatient)
     except Exception as e:
-        distanceSourceToPatient = 776.5    
+        random_noise = random.uniform(-2, 2)
+        distanceSourceToPatient = round(776.5 + random_noise, 2)   
 
     metaInfor = [positionerPrimaryAngle, positionerSecondaryAngle, distanceSourceToDetector, distanceSourceToPatient]
+    
     return metaInfor, fileName 
 
 def LoadCurveFromTxt(baseDir, defaultBranches, folderName='RCA_Brief'):
@@ -199,6 +208,9 @@ def LoadCurveFromTxt(baseDir, defaultBranches, folderName='RCA_Brief'):
         reconstructedCurves: a dictionary of {'identifier':<Rhino.Geometry.Curve>} value pairs
     """
     reconstructedCurves = {}
+    pointMaxDistance = -1
+    pointMinDistance = 100
+    isocenterPoint = Rhino.Geometry.Point3d(ISOCENTER[0], ISOCENTER[1], ISOCENTER[2])
     for branchIdx in list(defaultBranches.keys()):
         pintList = []
         with open(os.path.join(baseDir, 'Construction', folderName, '{}.txt'.format(branchIdx)), 'r') as fileHandle:
@@ -207,10 +219,16 @@ def LoadCurveFromTxt(baseDir, defaultBranches, folderName='RCA_Brief'):
                 locations = line.strip('\n').split(', ')
                 # Turn into list of floats
                 locations = list(map(float,locations))
-                pintList.append(Rhino.Geometry.Point3d(locations[0], locations[1], locations[2]))
+                pointObject = Rhino.Geometry.Point3d(locations[0], locations[1], locations[2])
+                distanceToCenter = isocenterPoint.DistanceTo(pointObject)
+                if distanceToCenter > pointMaxDistance:
+                    pointMaxDistance = distanceToCenter
+                if distanceToCenter < pointMinDistance:
+                    pointMinDistance = distanceToCenter
+                pintList.append(pointObject)
         identifier = defaultBranches[branchIdx]
         reconstructedCurves[identifier] = Rhino.Geometry.Curve.CreateControlPointCurve(pintList)
-    return reconstructedCurves
+    return reconstructedCurves, pointMaxDistance, pointMinDistance
 
 
 def CaptureViewToFile(filePath, viewport, width=None, height=None, displayMode='Shaded', transparent=True):
@@ -272,7 +290,7 @@ def saveStenosisInfor(saveInfor, inforSaveDir, csvName='stnosis_infor.csv'):
         inforSaveDir: <python string>, the directory of saving the information
         csvName: <python string>, the name of the saved file
     """
-    headline = ['index', 'fileName', 'stenosis_flag', 'stenosis_location', 
+    headline = ['index', 'fileName', 'stenosis_count', 'stenosis_location', 
             'effect_region', 'percentage', 'distanceSourceToDetector', 
             'distanceSourceToPatient', 'positionerPrimaryAngle', 'positionerSecondaryAngle']
     with open(os.path.join(inforSaveDir,csvName), 'w') as fileHandle:

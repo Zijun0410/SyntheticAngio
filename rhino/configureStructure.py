@@ -71,7 +71,7 @@ def RandomStenosisGenerator(position_range=(0,0.8), effect_range=(0.01, 0.05),
     return stenosis_location, effect_region, percentage
 
 
-def HeartMovementGenerator(reconstructedCurves, defaultBranches, min_scale=0.8, max_scale=1.2):
+def HeartMovementGenerator(reconstructedCurves, defaultBranches, pointMaxDistance, pointMinDistance, min_scale=0.8, max_scale=1.2):
     """
     Generate twists of vessel centerline to mimic the effect heart movements
     Pseudo Code
@@ -85,12 +85,19 @@ def HeartMovementGenerator(reconstructedCurves, defaultBranches, min_scale=0.8, 
     Inputs:
         min_scale <python float>, the minimum adjust scale
         max_scale <python float>, the maximum adjust scale
+        pointMaxDistance <python float>, the maximum distance from point on vessel line to isocenter
+        pointMinDistance <python float>, the minimum distance from point on vessel line to isocenter
         defaultBranches <python dict>, the branch index and identifier 
         reconstructedCurves <python dict>, the branch identifier and Rhino.Geometry.Curve
     """
     random_time = random.uniform(0, math.pi)
-    isocenter = Rhino.Geometry.Point3d(ISOCENTER)
+    isocenter = Rhino.Geometry.Point3d(ISOCENTER[0], ISOCENTER[1], ISOCENTER[2])
     scale_range = max_scale - min_scale
+    maxDistance = math.ceil(pointMaxDistance)
+    minDistance = math.floor(pointMinDistance)
+    med_value = round((minDistance/maxDistance +1)/2,2)
+    sign = lambda x: (1, -1)[x<1] # return 1 when value bigger than 1, -1 otherwise
+    adjust_func = lambda x, y: math.e**(sign(y)*(med_value-x))
 
     reconstructedModeCurves = {}
     for identifier in list(defaultBranches.values()):
@@ -99,13 +106,17 @@ def HeartMovementGenerator(reconstructedCurves, defaultBranches, min_scale=0.8, 
         rescaledPoints = []
         for pointObject in dividedPoints:
             dist = isocenter.DistanceTo(pointObject)
-            scale_factor = min_scale + math.sin(random_time)*scale_range
             # scale_factor is a value in range (min_scale, max_scale)
-            adjust_distance = dist*scale_factor
-            ptVector = (pointObject - isocenter)*adjust_distance
+            scale_factor = min_scale + math.sin(random_time)*scale_range
+            # adjust_factor adjust the scale_factor by multiplying a value defiend by adjust_func
+            adjust_factor = scale_factor*(adjust_func(dist/maxDistance, scale_factor))
+            ptVector = (pointObject - isocenter)*adjust_factor
             adjust_endpoint = isocenter + ptVector
             rescaledPoints.append(adjust_endpoint)
-        reconstructedModeCurves[identifier] = Rhino.Geometry.Curve.CreateControlPointCurve(rescaledPoints)
+        updateCurve = Rhino.Geometry.Curve.CreateControlPointCurve(rescaledPoints)
+        domain = Rhino.Geometry.Interval(0, 1)
+        updateCurve.Domain = domain
+        reconstructedModeCurves[identifier] = updateCurve
     return reconstructedModeCurves
 
 def GenerateStenosis(stenosis_location, effect_region, percentage, baseline_radii_major):

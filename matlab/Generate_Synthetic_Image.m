@@ -1,10 +1,8 @@
 %%% Synthetic the angiogram image based on the Rhino vessel image and the
 %%% real background image. 
 %%% Author: Zijun Gao
-%%% Last Update: Oct 5th 2021
+%%% Last Update: Oct 30th 2021
 %%% Project: SyntheticAngio
-
-
 
 % Setting the path etc
 % Generate the infor_saver_cell which contains
@@ -16,7 +14,6 @@
 %         angio_struct.volumn = struct();
 %         angio_struct.branch_identifiers = branch_identifiers;
 %         angio_struct.ref_size = ref_size;
-% Obtain stenosis_summary_tab
 
 % Configure the loading dir & stuff
 Config_Path
@@ -29,6 +26,7 @@ branch_identifiers = {'major', 'branch_1', 'branch_2', 'branch_3', 'branch_4', '
 % Flag
 debug_flag = 0;
 demo_flag = 0;
+save_struct_flag = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %-% Some default dir setting
@@ -39,22 +37,21 @@ if ~isfolder(output_save_dir)
 end
 
 % Define meta files
-if strcmp(batch_id,'UoMR')
+if contains(batch_id,'UoMR')
     meta_file_name = 'UoM_Right_endpoint.csv';
-elseif strcmp(batch_id,'UKR')
+elseif contains(batch_id,'UKR')
     meta_file_name = 'meta_summary.csv';
 end
 
 %-% Load stenosis infor generated from Rhino-python scripts
 stenosis_data = readtable(fullfile(image_load_dir, 'stnosis_infor.csv'));
 stenosis_infors = sortrows(stenosis_data,1);
-stenosis_infors.Properties.VariableNames = {'index', 'fileName', 'stenosis_flag', ...
+stenosis_infors.Properties.VariableNames = {'index', 'fileName', 'stenosis_count', ...
     'stenosis_location', 'effect_region', 'percentage', 'distanceSourceToDetector',... 
     'distanceSourceToPatient', 'positionerPrimaryAngle', 'positionerSecondaryAngle'};
 unique_image_cases = unique(stenosis_infors.fileName);
 
 %-% Load metedata generated from dicom file and manusal annotation
-  % See the matlab scripts: Background Image Preparation
 meta_infors = readtable(fullfile(base_data_path, 'Meta_Data', meta_file_name));
 
 %% Iterate through cases
@@ -76,9 +73,9 @@ for iCase = 1:size(unique_image_cases,1)
     if strcmp(batch_id,'UKR')
         file_name = stenosis_infor.fileName{1};
     else
-        file_name_dot = stenosis_infor.fileName{1};
-        % TODO: Change this line when python bug fixed
-        file_name = file_name_dot(1:end-1);
+    % file_name_dot = stenosis_infor.fileName{1};
+    % file_name = file_name_dot(1:end-1);
+        file_name = stenosis_infor.fileName{1};
     end
     
     %-% Record stenosis information 
@@ -97,11 +94,13 @@ for iCase = 1:size(unique_image_cases,1)
         else
             stenosis_detail(iStenosis,4) = 2;
         end        
-        stenosis_detail(iStenosis,5) = stenosis_infor.stenosis_flag(iStenosis);
+        stenosis_detail(iStenosis,5) = stenosis_infor.stenosis_count(iStenosis);
     end
     stenosis_detail = sortrows(array2table(stenosis_detail, 'VariableNames', ...
         stenosis_detail_col_names),5);
-
+    path_combo = string(split(angio_struct.output_folder, '\'));
+    stenosis_detail.output_folder = join(path_combo(2:end), '+');
+    
     %-% Display information when running
     disp(['Running the ', num2str(iCase), ' case. File name: ', file_name])
     file_png_folder = fullfile(image_load_dir, file_name);
@@ -174,11 +173,12 @@ for iCase = 1:size(unique_image_cases,1)
         back_image_path = fullfile(base_data_path, 'BackGround_Image', 'Clean', ...
             strcat(angio_struct.file_name,'.png'));
     else
-        meta_infor = meta_infors(contains(meta_infors.name_combine,angio_struct.file_name),:);
+        meta_infor = meta_infors(ismember(meta_infors.name_combine,angio_struct.file_name),:);
         % back_image_path = fullfile(meta_infor.save_dir{1}, meta_infor.background{1});
-        path_combo = string(split(meta_infor.save_dir{1},'\'));
-        base_combo = string(split(path_combo(1),':'));
-        element = [base_combo(2); path_combo(2:end-1)]';
+        % path_combo = string(split(meta_infor.save_dir{1},'\'));
+        % base_combo = string(split(path_combo(1),':'));
+        % element = [base_combo(2); path_combo(2:end-1)]';
+        element = string(split(meta_infor.save_dir, '+'));
         back_ground_dir = turbo;
         for i = 1:length(element)
             back_ground_dir = fullfile(back_ground_dir, element(i));
@@ -234,12 +234,18 @@ for iCase = 1:size(unique_image_cases,1)
         imwrite(montage_image_data,fullfile(angio_struct.output_folder, 'montage.png'));
     end
     %-% Write the angio_struct to folder
-    save(fullfile(angio_struct.output_folder, 'angio_struct.mat'),'angio_struct');
+    if save_struct_flag
+        save(fullfile(angio_struct.output_folder, 'angio_struct.mat'),'angio_struct');
+    end
     %-% Write relevant information to file
-    % 1. the synthetic image
-    imwrite(angio_struct.synthetic_image, fullfile(angio_struct.output_folder, 'synthetic.png'));
+    for iStenosis = 1:size(stenosis_infor,1)
+        % 1. the synthetic image
+        imwrite(angio_struct.synthetic_image, fullfile(angio_struct.output_folder, ...
+            strcat('synthetic_', num2str(iStenosis),'.png')));
+    end
     % 2. the stentosis information
-    writetable(angio_struct.stenosis_summary,fullfile(angio_struct.output_folder,'stenosis_infor.csv'),'Delimiter',',') 
+    writetable(angio_struct.stenosis_summary,fullfile(angio_struct.output_folder,...
+        'stenosis_infor.csv'),'Delimiter',',') 
     % 3. the segmentation mask of major and full vessel
     imwrite(seg_image, fullfile(angio_struct.output_folder, 'segmentation.png'));
     imwrite(major_seg_image, fullfile(angio_struct.output_folder, 'segmentation_major.png'));

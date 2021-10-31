@@ -2,7 +2,7 @@ __author__ = "zijung@umich.edu"
 __version__ = "2021.10.25"
 
 import os
-from configureStructure import RandomStenosisGenerator, GenerateVesselMesh, StenosisSphere, StartPointSphere, CrateContourCurves
+from configureStructure import RandomStenosisGenerator, GenerateVesselMesh, StenosisSphere, StartPointSphere, CrateContourCurves, HeartMovementGenerator
 from configureAngulation import ConfigAngulation, ConfigreceiveScreen, setView
 from configureLayer import AddLayer, DeleteLayerObject
 from configureHatch import HatchProjection, AddHatch
@@ -20,8 +20,12 @@ def main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit
 
     """
     #-# Read in metaData
-    meta_infor = {'Debug':'meta_summary.csv', 'UKR':'meta_summary.csv', 'UoMR':'UoM_Right_endpoint.csv'}
-    metaData, recordNum = ReadMetaData(baseDir, meta_infor[batch_id])
+    if 'Debug' in batch_id or 'UoMR' in batch_id:
+        meta_file = 'UoM_Right_endpoint.csv'
+    else:
+        meta_file = 'meta_summary.csv'
+        
+    metaData, recordNum = ReadMetaData(baseDir, meta_file)
 
     #-# Initiate Stenosis Infor Saver
     saveInfor = {}
@@ -43,7 +47,8 @@ def main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit
             os.makedirs(saveDir)
         
         #-# Generate Meshes
-        reconstructedCurves = LoadCurveFromTxt(baseDir, defaultBranchesNum)
+        reconstructedCurves, pointMaxDistance, pointMinDistance = uniformResult(*LoadCurveFromTxt(baseDir, defaultBranchesNum))
+        # print(pointMaxDistance, pointMinDistance)
 
         #-# Generate Stenosis
         # TODO: Change stenosis_num into a random number between 0 and 1
@@ -52,8 +57,8 @@ def main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit
             stenosis_num = 1
             if stenosis_num:
                 stenosis_location, effect_region, percentage = RandomStenosisGenerator()
-                # Random movement generator TODO
-                reconstructedCurves = HeartMovementGenerator(reconstructedCurves, defaultBranchesNum)
+                # Random heart movement generator
+                reconstructedCurves = HeartMovementGenerator(reconstructedCurves, defaultBranchesNum, pointMaxDistance, pointMinDistance)
             else:
                 stenosis_location, effect_region, percentage = 0, 0, 0
     
@@ -175,8 +180,11 @@ def main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit
             # discarded: outFilePath = CaptureViewToFile(filePath, viewport)
             #-# Remove layer object from layer
             DeleteLayerObject() 
-        if limit and iRecord == 1:
-             break
+        if limit and iRecord == 0:
+            break
+
+        if iRecord%100==0:
+            saveStenosisInfor(saveInfor, inforSaveDir)
 
     saveStenosisInfor(saveInfor, inforSaveDir)
 
@@ -184,5 +192,5 @@ if( __name__ == "__main__" ):
     # baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     baseDir = r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic'
     defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
-    batch_id = 'UKR' # Choose from {'Debug', 'UKR', 'UoMR'}
+    batch_id = 'UoMR_Movement' # Choose from {'Debug', 'UKR', 'UoMR'}
     main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit=False)

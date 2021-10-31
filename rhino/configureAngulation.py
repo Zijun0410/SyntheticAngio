@@ -145,7 +145,7 @@ def setView(lightVector, receiveScreenPlane, distanceSourceToPatient, Zplus,
         viewPort: An active 'Perspective' viewport that has its display mode set
     """
     # Set the 'Perspective' viewport
-    cameraPosition = receiveScreenPlane.Origin + receiveScreenPlane.ZAxis*20 #distanceSourceToPatient/6
+    cameraPosition = receiveScreenPlane.Origin + receiveScreenPlane.ZAxis*300 #distanceSourceToPatient/6
     cameraUpDirection = -receiveScreenPlane.XAxis
     view_port = viewportByName('Perspective')
     # Rhino.Geometry.Point3d.Add(cameraPosition, lightVector)
