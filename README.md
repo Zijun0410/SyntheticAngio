@@ -6,7 +6,7 @@
 Annotate the end point of catheter with GUI. 
 Code: `Z:\Projects\Angiogram\Code\Zijun\SyntheticAngio\GUI`, run `python main.py`
 Output: The paired images and summary information are saved at `Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\BackGround_Image`
-
+```
 BackGround_Image 
     |-- UoM_Right_endpoint.csv  
     |-- UoM_Right
@@ -14,7 +14,7 @@ BackGround_Image
             |-- background_1.png
             |-- endpoint_1.csv  
             |-- endpoint_1.png
-
+```
 Columns of summary `Folder_Side_endpoint.csv` are:
 **[filename, load_dir, frame_num, x, y, idnetifier, index, background, annotate, save_dir, name_combine,
 PositionerPrimaryAngle, PositionerSecondaryAngle, DistanceSourceToDetector, DistanceSourceToPatient]**
@@ -37,12 +37,12 @@ Code: `Z:\Projects\Angiogram\Code\Zijun\SyntheticAngio\rhino`
 1. Open Rhino, load model from `Z:\Projects\Angiogram\Code\Zijun\SyntheticAngio\model`
 2. Type in Command: `EditPythonScript`
 3. In the Python Script Editor, run `main.py`
-    First, set batch number, i.e. `batch_id = 'UK'`.
-    Second, `main(baseDir, defaultBranchesNum, batch_id, adjust=True, debug=False, limit=True)`, adjust the position of receive screen.
-    Third, `main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit=True)`, see if all the information is saved.
-    Fourth, `main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit=Flase)`, run the model
+    - First, set batch number, i.e. `batch_id = 'UK'`.
+    - Second, `main(baseDir, defaultBranchesNum, batch_id, adjust=True, debug=False, limit=True)`, adjust the position of receive screen.
+    - Third, `main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit=True)`, see if all the information is saved.
+    - Fourth, `main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit=Flase)`, run the model
 Result would be saved in Folder: `Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Rhino_Output\{batch_id}`
-
+```
 Rhino_Output
     |-- {batch_id}
         | -- 1001-21_13
@@ -52,7 +52,7 @@ Rhino_Output
             | -- `stnosis_{i}.png`
             | -- view.png
         | -- stnosis_infor.csv
-
+```
 Columns of summary `stnosis_infor.csv` are:
 **[index, fileName, stenosis_count, stenosis_location, effect_region, percentage, 
 distanceSourceToDetector, distanceSourceToPatient, positionerPrimaryAngle, positionerSecondaryAngle]**
@@ -69,6 +69,7 @@ Generate_Synthetic_Image.m (Crop, Resize and Match; Synthetic Image Generation)
 
 Output: `Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Sythetic_Output`
 
+```
 Sythetic_Output
     |-- {batch_id}
         |-- 001 (7)-R
@@ -76,6 +77,7 @@ Sythetic_Output
             |-- synthetic.png
             |-- angio_struct.mat (optional)
             |-- montage.png (optional)
+```
 
 Columns of summary `stnosis_infor.csv` are:
 [stenosis_location, effect_region, percentage, degree, *identifier*, output_folder, x_center, y_center]
