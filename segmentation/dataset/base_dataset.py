@@ -85,33 +85,33 @@ class RealDataset(D.Dataset):
     """
     This is a real Dataset for testing purpose   
     """    
-    def __init__(self, data_dir, augmentation_apply, salient_frame_number,input_channel="L",):
+    def __init__(self, data_dir, save_dir, augmentation_apply, input_channel="L"):
         """              
         """
-        self.dirpath = Path(data_dir) 
+        self.data_dir = Path(data_dir) # Z:\Projects\Angiogram\Data\Processed\Zijun\UpdateTrainingPipline\data\label&image
+        self.save_dir = Path(save_dir)
         self.input_channel = input_channel
         self.augmentation = augmentation_apply
-        self.subdirpath = glob.glob(os.path.join(self.dirpath,"*",""))
-        self.sfn = salient_frame_number # salient_frame_number
-        print(f"The Frame Number is {self.sfn}")
+        self.image_path = glob.glob(os.path.join(self.data_dir, "image", "*.png"))
 
     def __getitem__(self, index):
-        image_raw_dirpath = Path(self.subdirpath[index//self.sfn]) /'frame{}.png'.format(index%self.sfn +1)
-        image_raw = Image.open(image_raw_dirpath).convert("L")
 
-        transformed_raw, _ = transform_image(image_raw, image_raw, self.input_channel, self.augmentation)
-        return index, transformed_raw
+        image_raw = Image.open(self.data_dir/'image'/f'{index}-frame.png').convert("L")
+        image_seg = Image.open(self.data_dir/'label'/f'{index}-seg.png').convert("L")
+        transformed_raw, transformed_seg = transform_image(image_raw, image_seg, self.input_channel, self.augmentation)
+
+        return index, transformed_raw, transformed_seg
 
     def __len__(self):
-        return len(self.subdirpath)*self.sfn
+        return len(self.subdirpath)
 
-    def get_save_path(self, index):
-        return Path(self.subdirpath[index//self.sfn]) /'dlm{}.png'.format(index%self.sfn +1)
+    def get_save_path(self, folder):
+        # Used in testing image saving for Trainer
+        return self.save_dir / folder 
     
     def get_target_index(self):
-        return list(range(len(self.subdirpath)*self.sfn))
-
-
+        # Used in Data Loader Construction
+        return list(range(len(self.image_path)))
         
 def normalize_image(image_raw, set_min_val=0, set_max_val=1):
     unsqueeze_image_raw = np.expand_dims(np.array(image_raw), axis=0)

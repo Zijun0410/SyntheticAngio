@@ -61,22 +61,22 @@ class SytheticDataLoader(object):
         return self.init_kwargs['dataset'].get_save_path(folder)
 
 
-# class InferDataLoader(object):
-#     """docstring for InferDataLoader"""
-#     def __init__(self, path, batch_size, num_workers, salient_frame_number, shuffle=False, collate_fn=default_collate):
+class RealDataLoader(object):
+    """docstring for InferDataLoader"""
+    def __init__(self, load_dir, save_dir, batch_size=8, num_workers=2, shuffle=False, collate_fn=default_collate):
+        
+        self.dataset = InferDataset(load_dir, save_dir, no_augmentation)
 
-#         self.dataset = InferDataset(path, no_augmentation, salient_frame_number)
+        self.init_kwargs = {
+            'batch_size': batch_size,
+            'shuffle':shuffle,
+            'collate_fn': collate_fn,
+            'num_workers': num_workers,
+            'dataset': self.dataset
+        }
 
-#         self.init_kwargs = {
-#             'batch_size': batch_size,
-#             'shuffle':shuffle,
-#             'collate_fn': collate_fn,
-#             'num_workers': num_workers,
-#             'dataset': self.dataset
-#         }
+    def get_infer_loader(self):
+        return DataLoader(sampler=SubsetRandomSampler(self.dataset.get_target_index()), **self.init_kwargs)
 
-#     def get_infer_loader(self):
-#         return DataLoader(sampler=SubsetRandomSampler(self.dataset.get_target_index()), **self.init_kwargs)
-
-#     def get_dataset(self):
-#         return self.dataset
+    def get_dataset(self):
+        return self.dataset

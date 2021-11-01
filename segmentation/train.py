@@ -61,7 +61,6 @@ def training(config):
         # data_loader = getattr(module_data, config['data_loader']['type'])(**)
         data_loader = config.init_obj('data_loader', module_data)
         
-
         trainer.test(module_arch, data_loader)
 
 
