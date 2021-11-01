@@ -19,8 +19,8 @@
 Config_Path
 
 %%%%%%%%%%% MAKE CHANGE IF NEEDED %%%%%%%%%%%%%%
-% batch_id = 'UKR';
-batch_id = 'UoMR';
+batch_id = 'UoMR_Movement';
+% batch_id = 'UoMR';
 ref_size = 512;
 branch_identifiers = {'major', 'branch_1', 'branch_2', 'branch_3', 'branch_4', 'branch_5'};
 % Flag
@@ -106,7 +106,7 @@ for iCase = 1:size(unique_image_cases,1)
     file_png_folder = fullfile(image_load_dir, file_name);
     
     %-% Get the corresponding meta data and the center of catheter endpoint 
-    if strcmp(batch_id,'UKR')
+    if contains(batch_id,'UKR')
         meta_infor = meta_infors(contains(meta_infors.FileName,file_name),:);
         x_center = meta_infor.CenterX;
         y_center = meta_infor.CenterY; 
@@ -169,7 +169,7 @@ for iCase = 1:size(unique_image_cases,1)
     stenosis_summary_tab = [stenosis_summary_tab; stenosis_summary];
     
     %-% Load Real Background Image
-    if strcmp(batch_id, 'UKR')
+    if contains(batch_id, 'UKR')
         back_image_path = fullfile(base_data_path, 'BackGround_Image', 'Clean', ...
             strcat(angio_struct.file_name,'.png'));
     else

@@ -1,7 +1,6 @@
 # SyntheticAngio
  Create synthetic angiogram image based on 3D coronary artery model
 
-
 ## 1. Endpoint Annotation For Real Background Image
 Annotate the end point of catheter with GUI. 
 Code: `Z:\Projects\Angiogram\Code\Zijun\SyntheticAngio\GUI`, run `python main.py`
@@ -64,9 +63,10 @@ Generate the sythetic image for training.
 
 Code: `Z:\Projects\Angiogram\Code\Zijun\SyntheticAngio\matlab\Generate_Synthetic_Image.m`
 
+```
 Generate_Synthetic_Image.m (Crop, Resize and Match; Synthetic Image Generation)
     |-- Config_Path.m (Setting up the Path)
-
+```
 Output: `Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Sythetic_Output`
 
 ```
