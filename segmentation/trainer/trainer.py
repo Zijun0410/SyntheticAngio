@@ -159,20 +159,21 @@ class EasyTrainer(BaseTrainer):
 
         test_logger.info(f'Loading checkpoint of the best model: {best_model} ...')
         test_model = self.config.init_obj('arch', module_arch)
-        checkpoint = torch.load(str(best_model))
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+        checkpoint = torch.load(str(best_model), map_location = device)
         state_dict = checkpoint['state_dict']
-        if self.config['n_gpu'] > 1:
+        if self.config['n_gpu'] > 1 and torch.cuda.is_available():
             test_model = torch.nn.DataParallel(test_model)
         test_model.load_state_dict(state_dict) 
 
         # prepare model for testing
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         test_model = test_model.to(device)
         test_model.eval()
 
         test_metrics.reset()
         run_name = self.config['name']
-        output_save_dir = data_loader.get_save_dir("Seg_Result") / f'{run_name}'
+        output_save_dir = data_loader.get_save_dir("Seg_Result") / f'{run_name}_Synthtic' 
 
         if not os.path.isdir(output_save_dir):
             output_save_dir.mkdir(parents=True, exist_ok=True)

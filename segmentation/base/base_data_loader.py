@@ -62,11 +62,11 @@ class SytheticDataLoader(object):
 
 
 class RealDataLoader(object):
-    """docstring for InferDataLoader"""
-    def __init__(self, load_dir, save_dir, batch_size=8, num_workers=2, shuffle=False, collate_fn=default_collate):
+    """DataLoader for loading real XCA images"""
+    def __init__(self, load_dir, save_dir, side='ALL', batch_size=8, num_workers=2, shuffle=False, collate_fn=default_collate):
         
-        self.dataset = InferDataset(load_dir, save_dir, no_augmentation)
-
+        self.dataset = RealDataset(load_dir, save_dir, side, no_augmentation)
+        self.save_dir = save_dir
         self.init_kwargs = {
             'batch_size': batch_size,
             'shuffle':shuffle,
@@ -75,8 +75,11 @@ class RealDataLoader(object):
             'dataset': self.dataset
         }
 
-    def get_infer_loader(self):
+    def get_data_loader(self):
         return DataLoader(sampler=SubsetRandomSampler(self.dataset.get_target_index()), **self.init_kwargs)
 
     def get_dataset(self):
         return self.dataset
+
+    def get_save_dir(self, folder):
+        return Path(self.save_dir) / folder

@@ -51,7 +51,7 @@ def training(config):
                       valid_data_loader=valid_data_loader,
                       lr_scheduler=lr_scheduler)
 
-    trainer.train()
+    # trainer.train()
 
     ##################################### Testing ####################################
 

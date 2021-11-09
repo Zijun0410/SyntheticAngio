@@ -40,12 +40,13 @@ class MetricTracker:
             self._series[key] = []
 
     def update(self, key, value, n=1):
-        if self.writer is not None:
-            self.writer.add_scalar(key, value)
-        self._data.total[key] += value * n
-        self._data.counts[key] += n
-        self._data.average[key] = self._data.total[key] / self._data.counts[key]
-        self._series[key].append(value)
+        if not np.isnan(value):
+            if self.writer is not None:
+                self.writer.add_scalar(key, value)
+            self._data.total[key] += value * n
+            self._data.counts[key] += n
+            self._data.average[key] = self._data.total[key] / self._data.counts[key]
+            self._series[key].append(value)
 
     def avg(self, key):
         return self._data.average[key]
@@ -57,7 +58,7 @@ class MetricTracker:
         self._std = {}
         for key in self.keywords:
             all_data = np.array(self._series[key])  
-            self._std[key] = np.std(all_data)
+            self._std[key] = np.nanstd(all_data)
         return self._std
 
     def get_data(self):

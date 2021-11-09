@@ -85,17 +85,29 @@ class RealDataset(D.Dataset):
     """
     This is a real Dataset for testing purpose   
     """    
-    def __init__(self, data_dir, save_dir, augmentation_apply, input_channel="L"):
+    def __init__(self, data_dir, save_dir, side, augmentation_apply, input_channel="L"):
         """              
         """
         self.data_dir = Path(data_dir) # Z:\Projects\Angiogram\Data\Processed\Zijun\UpdateTrainingPipline\data\label&image
         self.save_dir = Path(save_dir)
         self.input_channel = input_channel
         self.augmentation = augmentation_apply
+        self.side = side
         self.image_path = glob.glob(os.path.join(self.data_dir, "image", "*.png"))
+        self.infor_pd = read_csv(self.data_dir /'patient.csv')
+
+        if side == "ALL":
+            self.indices = self.infor_pd.index_one.tolist()
+        elif side == "R":
+            self.indices = self.infor_pd.index_one[self.infor_pd['side']=='R'].tolist()
+        elif side == "L":
+            self.indices = self.infor_pd.index_one[self.infor_pd['side']=='L'].tolist()
+
+        print(f"Indices on {side} side: {','.join([str(i) for i in self.indices])}")
 
     def __getitem__(self, index):
-
+        # print(f"Try to get index {index}")
+        # match_index = self.indices[index]
         image_raw = Image.open(self.data_dir/'image'/f'{index}-frame.png').convert("L")
         image_seg = Image.open(self.data_dir/'label'/f'{index}-seg.png').convert("L")
         transformed_raw, transformed_seg = transform_image(image_raw, image_seg, self.input_channel, self.augmentation)
@@ -103,7 +115,7 @@ class RealDataset(D.Dataset):
         return index, transformed_raw, transformed_seg
 
     def __len__(self):
-        return len(self.subdirpath)
+        return len(self.indices)
 
     def get_save_path(self, folder):
         # Used in testing image saving for Trainer
@@ -111,7 +123,7 @@ class RealDataset(D.Dataset):
     
     def get_target_index(self):
         # Used in Data Loader Construction
-        return list(range(len(self.image_path)))
+        return self.indices
         
 def normalize_image(image_raw, set_min_val=0, set_max_val=1):
     unsqueeze_image_raw = np.expand_dims(np.array(image_raw), axis=0)

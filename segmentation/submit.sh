@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DATE=20211102
+DATE=20211104
 sbatch scripts/${DATE}/config_densenet121_unet.sh
 sleep 1
 sbatch scripts/${DATE}/config_inceptionresnet2_unet.sh

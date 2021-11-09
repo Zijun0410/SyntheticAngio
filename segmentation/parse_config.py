@@ -33,12 +33,16 @@ class ConfigParser:
 
         # use timestamp as default run-id
         if self.purpose is not None:
+            # If no running purpose were given, use the month, data, hour .. as save folder name
             if self._debug is not True: 
                 # run_id = datetime.now().strftime(r'%m%d_%H%M%S')
-                run_id = datetime.now().strftime(r'%m%d')
-                run_id = run_id + '_{}'.format(self.purpose)
+                # run_id = datetime.now().strftime(r'%m%d')
+                config_time = config['time_stamp']
+                run_id = config_time + '_{}'.format(self.purpose)
             else: # self._debug is True
-                run_id = datetime.now().strftime(r'%m%d_debug')
+                # run_id = datetime.now().strftime(r'%m%d_debug')
+                config_time = config['time_stamp']
+                run_id = config_time + '_debug'
         else:
             run_id = datetime.now().strftime(r'%m%d_%H%M%S')
     
@@ -90,6 +94,7 @@ class ConfigParser:
             cfg_fname = Path(args.config)
         
         config = read_json(cfg_fname)
+        config['time_stamp'] = Path(cfg_fname).parent.name
         if args.config and resume:
             # update new config for fine-tuning
             config.update(read_json(args.config))
