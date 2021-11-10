@@ -12,7 +12,7 @@ import model.model as module_arch
 
 from pathlib import Path
 import glob
-
+import numpy as np
 
 def init_obj(config, name, module, *args, **kwargs):
     """
