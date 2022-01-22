@@ -21,10 +21,6 @@ def training(config):
     # setup logger 
     logger = config.get_logger('train')
 
-    # breakpoint()
-    # construct a DataLoader instance with a SubsetRandomSampler instance(build upon all the 
-    # training indices) by passing in class  handle and the args from the config.
-
     data_loader = config.init_obj('data_loader', module_data)
     
     # construct the training and validation DataLoader instance
@@ -51,7 +47,7 @@ def training(config):
                       valid_data_loader=valid_data_loader,
                       lr_scheduler=lr_scheduler)
 
-    # trainer.train()
+    trainer.train()
 
     ##################################### Testing ####################################
 
