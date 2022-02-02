@@ -1,14 +1,16 @@
 __author__ = "zijung@umich.edu"
-__version__ = "2021.09.16"
+__version__ = "2022.02.01"
 
 
 import rhinoscriptsyntax as rs
 import os
 
 
-def ExportControlPoints(baseDir=r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'):
+def ExportControlPoints(baseDir='..\\data\\Construction\\', folder_name = 'RCA_Detail'):
     """
     Export curve's control points to a text file
+    r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
+
     """
     # Select all the curves 
     curveGUIDs = rs.GetObjects("Select curve", rs.filter.curve)
@@ -18,7 +20,7 @@ def ExportControlPoints(baseDir=r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\da
         editPts = rs.CurvePoints(curveObjGUID)
         rs.AddTextDot('{}'.format(iCurve), editPts[-1])
         print('The number of edit points in {} curve is {}'.format(iCurve,len(editPts) ))
-        with open(os.path.join(baseDir,'{}.txt'.format(iCurve)), 'w') as fileHandle:
+        with open(os.path.join(baseDir+folder_name,'{}.txt'.format(iCurve)), 'w') as fileHandle:
             for pt in editPts:
                 fileHandle.write( str(pt.X) )
                 fileHandle.write( ", " )
@@ -27,12 +29,5 @@ def ExportControlPoints(baseDir=r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\da
                 fileHandle.write( str(pt.Z) )
                 fileHandle.write( "\n" ) 
 
-    # The number of edit points in 0 curve is 40
-    # The number of edit points in 1 curve is 30
-    # The number of edit points in 2 curve is 30
-    # The number of edit points in 3 curve is 130
-    # The number of edit points in 4 curve is 40
-    # The number of edit points in 5 curve is 20
-
 if( __name__ == "__main__" ):
-    ExportControlPoints()
+    ExportControlPoints(folder_name = 'RCA_Detail_2')

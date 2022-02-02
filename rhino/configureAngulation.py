@@ -152,7 +152,8 @@ def setView(lightVector, receiveScreenPlane, distanceSourceToPatient, Zplus,
     view_port.SetCameraTarget(receiveScreenPlane.Origin, True)
     view_port.SetCameraDirection(lightVector, True)
     view_port.SetCameraLocation(cameraPosition, True)
-    
+    view_port.ChangeToParallelProjection(True)
+
     #-# Find the CameraUpdirection
     # In general, the real world Z+ axis should point to up direction. 
     # We want to find one axis from X+, X-, Y+ or Y- of the visualizatioinPlane
@@ -184,9 +185,13 @@ def setView(lightVector, receiveScreenPlane, distanceSourceToPatient, Zplus,
 
 if( __name__ == "__main__" ):
     
-    visualizatioinPlane, lightVector, Zplus = ConfigAngulation(positionerPrimaryAngle,positionerSecondaryAngle)
-
+    positionerPrimaryAngle = 20
+    positionerSecondaryAngle = 30
+    distanceSourceToPatient = 100
+    distanceSourceToDetector = 400
+    #-# Config Angle and Receive Screen 
+    visualizatioinPlane, lightVector, Zplus = uniformResult(*ConfigAngulation(positionerPrimaryAngle, positionerSecondaryAngle))
     receiveScreenPlane, receiveScreenMesh = ConfigreceiveScreen(visualizatioinPlane, distanceSourceToPatient, 
-        distanceSourceToDetector, planeSize)
-
+        distanceSourceToDetector, planeSize=120)
+    #-# Set Active Viewport for Rhino
     viewport = setView(lightVector, receiveScreenPlane, distanceSourceToPatient, Zplus)

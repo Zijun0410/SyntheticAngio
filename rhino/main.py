@@ -13,7 +13,7 @@ import rhinoscriptsyntax as rs
 # https://github.com/mcneel/rhinoscriptsyntax/tree/rhino-6.x/Scripts/rhinoscript
 # https://developer.rhino3d.com/api/RhinoScriptSyntax/
 
-def main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit=False, side='R'):
+def main(baseDir, defaultBranchesNum, batch_id, load_folder, adjust=False, debug=False, limit=False, side='R'):
     """
     Load metadata from baseDir/Meta_Data/batch_id
     Save Rhino output to baseDir/Rhino_Output/batch_id
@@ -47,18 +47,17 @@ def main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit
             os.makedirs(saveDir)
         
         #-# Generate Meshes
-        reconstructedCurves, pointMaxDistance, pointMinDistance = uniformResult(*LoadCurveFromTxt(baseDir, defaultBranchesNum))
+        reconstructedCurves, pointMaxDistance, pointMinDistance = uniformResult(*LoadCurveFromTxt(baseDir, defaultBranchesNum[load_folder], load_folder))
         # print(pointMaxDistance, pointMinDistance)
 
         #-# Generate Stenosis
-        # TODO: Change stenosis_num into a random number between 0 and 1
         success = 0
         while success == 0:
             stenosis_num = 1
             if stenosis_num:
                 stenosis_location, effect_region, percentage = RandomStenosisGenerator()
                 # Random heart movement generator
-                reconstructedCurves = HeartMovementGenerator(reconstructedCurves, defaultBranchesNum, pointMaxDistance, pointMinDistance)
+                reconstructedCurves = HeartMovementGenerator(reconstructedCurves, defaultBranchesNum[load_folder], pointMaxDistance, pointMinDistance)
             else:
                 stenosis_location, effect_region, percentage = 0, 0, 0
     
@@ -191,6 +190,17 @@ def main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit
 if( __name__ == "__main__" ):
     # baseDir = r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
     baseDir = r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic'
-    defaultBranchesNum = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
-    batch_id = 'UKR_Movement' # Choose from {'Debug', 'UKR', 'UoMR'}
-    main(baseDir, defaultBranchesNum, batch_id, adjust=False, debug=False, limit=False)
+    defaultBranches = dict()
+    defaultBranches['RCA_Brief'] = {0:'branch_4', 1:'branch_2', 2:'branch_3', 3:'major', 4:'branch_5', 5:'branch_1'}
+    defaultBranches['RCA_Detail_2'] = {11:'major',0:'branch_1', 1:'branch_2', 2:'branch_3', 3:'branch_4', 
+                                12:'branch_5', 16:'branch_6', 4:'sub_1', 5:'sub_2', 6:'sub_3', 7:'subsub_1', 
+                                8:'sub_4', 9:'sub_5', 10:'sub_6',  13:'sub_7', 14:'sub_8', 15:'sub_9', 
+                                17:'sub_10', 18:'sub_11'}
+    defaultBranches['RCA_Detail_1'] = {3:'major', 0:'branch_1', 1:'branch_2', 2:'branch_3', 4:'branch_4', 
+                                5:'branch_5', 14: 'branch_6', 16: 'branch_7', 6:'sub_1', 8:'sub_2', 9:'sub_3',
+                                10:'sub_4', 11:'sub_5', 12:'sub_6', 15:'sub_7', 18:'sub_8', 19:'sub_9',
+                                21:'sub_10', 22:'sub_11', 23:'sub_12', 24:'sub_13', 25:'sub_14',
+                                7:'subsub_1', 10:'subsub_2', 13:'subsub_3', 17:'subsub_4', 20:'subsub_5'}
+
+    batch_id = 'UKR' # Choose from {'Debug', 'UKR', 'UoMR'}
+    main(baseDir, defaultBranches, batch_id, folder='RCA_Detail_1', adjust=True, debug=False, limit=False)
