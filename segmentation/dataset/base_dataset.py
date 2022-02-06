@@ -124,7 +124,140 @@ class RealDataset(D.Dataset):
     def get_target_index(self):
         # Used in Data Loader Construction
         return self.indices
+
+class CombinedDataset(D.ConcatDataset):
+    """
+    Dataset as a concatenation of different datasets.
+    dirpath(Path object from pathlib): the dirctory where all the datasets are stored
+    dataset_names_by_user(string or list of strings): provided by user, folder names that could found under the dirpath
+    dataset_class_handles(dictionary[dataset_folder_name] = Class_handle): defined in data_loaders.py
+    input_channel(str): either 'RGB' or 'L'
+    augmentation_apply(dictionary[input_channel] = a_tranformation_list): defined in data_loaders.py
+    obtain_label(bool): wether or not to obtain the labels in these datasets
+    training(bool): are these dataset used for training
+
+    """
+    def __init__(self, dirpath, dataset_names_by_user, dataset_class_handles, input_channel, 
+        augmentation_apply, obtain_label, training):
         
+        # Obtain the path of the data dir and the dataset folder names under this dir 
+        self.dirpath = Path(dirpath)
+        dataset_folder_names = os.listdir(self.dirpath)
+
+        # initate the dataset_list and len_dataset_list to store the 
+        # different dataset instance and their length
+        dataset_list, self.len_dataset_list = [], []
+        # iterate through the dataset_names_by_user provided by user
+        for dataset_name in dataset_names_by_user:
+            # make sure this dataset exist in the folder and is defined in the class handle dictionary
+            if dataset_name in dataset_folder_names and dataset_name in dataset_class_handles:           
+                dataset_full_path = self.dirpath / dataset_name
+                # create an instance of the dataset class 
+                dataset_created = dataset_class_handles[dataset_name](dataset_full_path, 
+                    augmentation_apply, input_channel, obtain_label, training)
+                dataset_list.append(dataset_created)
+                self.len_dataset_list.append(len(dataset_created))
+            else:
+                raise KeyError("Based on the dataset folder name: {} provided, \
+                the folder either doesn't exist, or not defined.".format(dataset_name))
+        
+        # create a new ConcatDataset instance
+        super().__init__(dataset_list)
+
+        # obtain the labels of each dataset and concatnate them together
+        self.label = []
+        for each_dataset in dataset_list:
+            label_each_dataset = each_dataset.get_label()
+            if label_each_dataset is not None:
+                self.label += label_each_dataset
+
+    def get_label(self):
+        return self.label
+
+    def get_dataset_length(self):
+        return self.len_dataset_list
+
+
+class Public_Dataset(D.Dataset):
+
+    def __init__(self, dirpath, augmentation_apply, input_channel, obtain_label, training):
+
+        self.dirpath = Path(dirpath)
+        self.raw_dirpath = self.dirpath / 'raw'
+        self.segmented_dirpath = self.dirpath /'annotated'
+
+        self.input_channel = input_channel
+        self.training = training
+        self.obtain_label = obtain_label
+        self.augmentation = augmentation_apply
+        self.patient_info = read_csv(self.dirpath / 'patient.csv', names=["image","label"])
+
+    def get_label(self):
+        if self.obtain_label is True:
+            return list(self.patient_info["label"])
+        else:
+            return None
+
+    def __getitem__(self, index):
+        # add this line of index_ just in case the image(name) row is somehow shuffled 
+        index_ = self.patient_info.loc[index,"image"]
+        image_raw = Image.open(self.raw_dirpath / "{}.png".format(index_)).convert("L")
+        image_seg = Image.open(self.segmented_dirpath / "{}.png".format(index_)).convert("L")
+
+        transformed_raw, transformed_seg = transform_image(image_raw, image_seg, self.input_channel, self.augmentation)
+
+        return index, transformed_raw, transformed_seg, -1
+
+    def __len__(self):
+        return len(fnmatch.filter(os.listdir(self.raw_dirpath), "*.png"))
+
+class Alberto_Dataset(D.Dataset):
+    """
+    This is a private dataset from alberto lab that contains 343 segmented images,
+    The quality of the annotaion is low. 
+    """
+    def __init__(self, dirpath, augmentation_apply, input_channel, obtain_label, training):
+
+        self.dirpath = Path(dirpath)
+        self.raw_dirpath = self.dirpath / 'images'
+        self.segmented_dirpath = self.dirpath /'annotations'
+        self.image_names = fnmatch.filter(os.listdir(self.raw_dirpath), "*.png")
+        # Read into the patient info
+        self.patient_info = read_csv(self.dirpath / 'patient.csv', names=["image","label"])
+
+        # Set the image name column as index, so it's easier to match with the labels
+        self.patient_info.set_index("image", inplace=True)
+
+        self.input_channel = input_channel
+        self.training = training
+        self.obtain_label = obtain_label
+        self.augmentation = augmentation_apply
+
+    def get_label(self):
+        if self.obtain_label is True:
+            # get the raw image names
+            raw_image_names = [image_name.replace('.png','') for image_name in self.image_names]
+            
+            return [self.patient_info.loc[raw_image_name]["label"] for raw_image_name in raw_image_names]
+        else:
+            return None
+
+    def __getitem__(self, index):
+
+        # Get the image name with given index
+        image_name = self.image_names[index]
+        # image_name_segmented = image_names_segmented[image_names_segmented.index(image_name_raw)]
+
+        # Read Images, Transform and Augment Images
+        image_raw = Image.open(self.raw_dirpath / image_name)#.convert("L")
+        image_seg = Image.open(self.segmented_dirpath / image_name)#.convert("L")
+        transformed_raw, transformed_seg = transform_image(image_raw, image_seg, self.input_channel, self.augmentation)
+        return index, transformed_raw, transformed_seg, -1
+
+    def __len__(self):
+    
+        return len(fnmatch.filter(os.listdir(self.raw_dirpath), "*.png"))
+
 def normalize_image(image_raw, set_min_val=0, set_max_val=1):
     unsqueeze_image_raw = np.expand_dims(np.array(image_raw), axis=0)
     # np.array(image_raw).shape = (512,512) -> return shape (512,512)

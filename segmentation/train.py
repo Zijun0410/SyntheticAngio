@@ -51,13 +51,13 @@ def training(config):
 
     ##################################### Testing ####################################
 
-    if config['data_loader']['args']['running_purpose'] == 'training':
-        # if it's for model preparation purpose then there is no need for testing
-        config['data_loader']['args']['running_purpose'] = 'testing'
-        # data_loader = getattr(module_data, config['data_loader']['type'])(**)
-        data_loader = config.init_obj('data_loader', module_data)
+    # if config['data_loader']['args']['running_purpose'] == 'training':
+    #     # if it's for model preparation purpose then there is no need for testing
+    #     config['data_loader']['args']['running_purpose'] = 'testing'
+    #     # data_loader = getattr(module_data, config['data_loader']['type'])(**)
+    #     data_loader = config.init_obj('data_loader', module_data)
         
-        trainer.test(module_arch, data_loader)
+    #     trainer.test(module_arch, data_loader)
 
 
 if __name__ == '__main__':

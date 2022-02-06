@@ -3,7 +3,7 @@
 2. synthetic
 3. cd segmentation
 4. initiate a gpu running environment 
-srun --account=kayvan0 --time=04:00:00 --ntasks-per-node=1 --mem-per-cpu=8GB --partition=gpu --gres=gpu:1 --pty /bin/bash
+srun --account=kayvan1 --time=04:00:00 --ntasks-per-node=1 --mem-per-cpu=12GB --partition=gpu --gres=gpu:1 --pty /bin/bash
 
 srun --account=kayvan1 --time=04:00:00 --ntasks-per-node=1 --mem-per-cpu=16GB  --pty /bin/bash
 

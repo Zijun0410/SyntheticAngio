@@ -6,20 +6,24 @@ nature_paper_augmentation = {}
 #   translation shift (0–10% of image size in horizontal and vertical axes), 
 #   and zoom (0–10%).""
 nature_paper_augmentation['L'] = iaa.Sequential([
+    iaa.Resize(512),
     iaa.Sometimes(0.7, iaa.Affine(scale=(1, 1.1), rotate=(-20, 20), translate_percent=(-0.1,0.1)))
     ], random_order=False)
 
 nature_paper_augmentation['RGB'] = iaa.Sequential([
+    iaa.Resize(512),
     iaa.Sometimes(0.7, iaa.Affine(scale=(1, 1.1), rotate=(-20, 20), translate_percent=(-0.1,0.1)))
     ], random_order=False)
 
 custom_augmentation = {}
 
 custom_augmentation['L'] = iaa.Sequential([
+    iaa.Resize(512),
     iaa.Sometimes(0.3, iaa.Affine(scale=(1, 1.1), rotate=(-10, 10), translate_percent=(-0.1,0.1)))
     ], random_order=False)
 
 custom_augmentation['RGB'] = iaa.Sequential([
+    iaa.Resize(512),
     iaa.Sometimes(0.3, iaa.Affine(scale=(1, 1.1), rotate=(-10, 10), translate_percent=(-0.1,0.1)))
     ], random_order=False)
 
