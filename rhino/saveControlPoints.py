@@ -6,7 +6,8 @@ import rhinoscriptsyntax as rs
 import os
 
 
-def ExportControlPoints(baseDir='..\\data\\Construction\\', folder_name = 'RCA_Detail'):
+def ExportControlPoints(baseDir='..\\data\\Construction\\', 
+folder_name = 'RCA_Detail', subfolder_name = ''):
     """
     Export curve's control points to a text file
     r'C:\Users\gaozj\Desktop\Angio\SyntheticAngio\data'
@@ -20,7 +21,10 @@ def ExportControlPoints(baseDir='..\\data\\Construction\\', folder_name = 'RCA_D
         editPts = rs.CurvePoints(curveObjGUID)
         rs.AddTextDot('{}'.format(iCurve), editPts[-1])
         print('The number of edit points in {} curve is {}'.format(iCurve,len(editPts) ))
-        with open(os.path.join(baseDir+folder_name,'{}.txt'.format(iCurve)), 'w') as fileHandle:
+        save_directory = os.path.join(baseDir+folder_name, subfolder_name)
+        if not os.path.exists(save_directory):
+            os.makedirs(save_directory)
+        with open(os.path.join(save_directory, '{}.txt'.format(iCurve)), 'w') as fileHandle:
             for pt in editPts:
                 fileHandle.write( str(pt.X) )
                 fileHandle.write( ", " )
@@ -30,4 +34,4 @@ def ExportControlPoints(baseDir='..\\data\\Construction\\', folder_name = 'RCA_D
                 fileHandle.write( "\n" ) 
 
 if( __name__ == "__main__" ):
-    ExportControlPoints(folder_name = 'RCA_Detail_2')
+    ExportControlPoints(folder_name='LCA_Detail_2', subfolder_name='branch')

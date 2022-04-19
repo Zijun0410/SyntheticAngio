@@ -47,7 +47,8 @@ def main(baseDir, defaultBranchesNum, batch_id, load_folder, adjust=False, debug
             os.makedirs(saveDir)
         
         #-# Generate Meshes
-        reconstructedCurves, pointMaxDistance, pointMinDistance = uniformResult(*LoadCurveFromTxt(baseDir, defaultBranchesNum[load_folder], load_folder))
+        reconstructedCurves, pointMaxDistance, pointMinDistance = uniformResult(*LoadCurveFromTxt(
+            baseDir, defaultBranchesNum[load_folder], load_folder))
         # print(pointMaxDistance, pointMinDistance)
 
         #-# Generate Stenosis
@@ -57,7 +58,8 @@ def main(baseDir, defaultBranchesNum, batch_id, load_folder, adjust=False, debug
             if stenosis_num:
                 stenosis_location, effect_region, percentage = RandomStenosisGenerator()
                 # Random heart movement generator
-                reconstructedCurves = HeartMovementGenerator(reconstructedCurves, defaultBranchesNum[load_folder], pointMaxDistance, pointMinDistance)
+                reconstructedCurves = HeartMovementGenerator(reconstructedCurves, 
+                    defaultBranchesNum[load_folder], pointMaxDistance, pointMinDistance)
             else:
                 stenosis_location, effect_region, percentage = 0, 0, 0
     
@@ -70,8 +72,8 @@ def main(baseDir, defaultBranchesNum, batch_id, load_folder, adjust=False, debug
             # -- vesselMeshes is a <python dict> with branch identifier as key,
             #    and <Rhino.Geometry.Mesh> as values
             try:
-                vesselBreps, vesselStartBreps, vesselMeshes = uniformResult(*GenerateVesselMesh(reconstructedCurves, 
-                    stenosis_location, effect_region, percentage, stenosis_num))
+                vesselBreps, vesselStartBreps, vesselMeshes = uniformResult(*GenerateVesselMesh(
+                    reconstructedCurves, stenosis_location, effect_region, percentage, stenosis_num))
                 success = 1
             except:
                 print("Error!!!!")
