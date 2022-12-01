@@ -86,5 +86,7 @@ Columns of summary `stnosis_infor.csv` are:
 
 ## 4. Training Preparation 
 
-
-
+modified the sythetic image generation matlab file and saved the output to 
+`Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\GAN_Data\UKR` and 
+`Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\GAN_Data\UoMR`
+each have a `stenosis_detail.csv` file 

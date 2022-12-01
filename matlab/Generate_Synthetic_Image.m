@@ -19,8 +19,9 @@
 Config_Path
 
 %%%%%%%%%%% MAKE CHANGE IF NEEDED %%%%%%%%%%%%%%
-batch_id = 'UoMR_Movement';
-% batch_id = 'UoMR';
+% batch_id = 'UoMR_Movement';
+batch_id = 'UoMR';
+% batch_id = 'UKR';
 ref_size = 512;
 branch_identifiers = {'major', 'branch_1', 'branch_2', 'branch_3', 'branch_4', 'branch_5'};
 % Flag
@@ -31,7 +32,7 @@ save_struct_flag = 0;
 
 %-% Some default dir setting
 image_load_dir = fullfile(base_data_path, 'Rhino_Output', batch_id);
-output_save_dir = fullfile(base_data_path, 'Sythetic_Output', batch_id);
+output_save_dir = fullfile(base_data_path, 'GAN_Data', batch_id);
 if ~isfolder(output_save_dir)
     mkdir(output_save_dir)
 end
@@ -192,12 +193,14 @@ for iCase = 1:size(unique_image_cases,1)
     rescale_factor = 0.3;
     random_factor = 100;
     background = angio_struct.background;
+    whole_volumn = zeros(512,512);
     for identifier = angio_struct.branch_identifiers
         volumn_image = angio_struct.volumn.(identifier{1});
         % blur_image = imgaussfilt(volumn_image, gaussian_factor);
         vessel_shade = (1 - volumn_image)*rescale_factor;
-        % Get the background region where vessel_shade would lie
+        % Get the background region where vessel_shade falls in
         vessel_shade_mask = volumn_image<0.99;
+        whole_volumn = whole_volumn + 1 - volumn_image;
         background_shade = zeros(512,512)+1;
         background_shade(vessel_shade_mask) = background(vessel_shade_mask);
         if debug_flag;figure;imshow(background_shade);end
@@ -213,6 +216,7 @@ for iCase = 1:size(unique_image_cases,1)
         background = background - blurred_shade - rand(1)/random_factor;
     end
     angio_struct.synthetic_image = background;
+    angio_struct.whole_volumn = 1 - whole_volumn;
     %-% Generate segmentation mask for major vessel and all vessels
     major_seg_image = imbinarize(imcomplement(angio_struct.segment.major));
     seg_image = zeros(ref_size, ref_size);
@@ -237,18 +241,25 @@ for iCase = 1:size(unique_image_cases,1)
     if save_struct_flag
         save(fullfile(angio_struct.output_folder, 'angio_struct.mat'),'angio_struct');
     end
+    
     %-% Write relevant information to file
-    for iStenosis = 1:size(stenosis_infor,1)
-        % 1. the synthetic image
-        imwrite(angio_struct.synthetic_image, fullfile(angio_struct.output_folder, ...
-            strcat('synthetic_', num2str(iStenosis),'.png')));
-    end
+
+    % 1. the synthetic image
+    imwrite(angio_struct.synthetic_image, fullfile(angio_struct.output_folder, ...
+        strcat('synthetic.png')));
+
     % 2. the stentosis information
     writetable(angio_struct.stenosis_summary,fullfile(angio_struct.output_folder,...
-        'stenosis_infor.csv'),'Delimiter',',') 
+        'stenosis_infor.csv'),'Delimiter',',')
+    
     % 3. the segmentation mask of major and full vessel
     imwrite(seg_image, fullfile(angio_struct.output_folder, 'segmentation.png'));
     imwrite(major_seg_image, fullfile(angio_struct.output_folder, 'segmentation_major.png'));
+    
+    % 4. the volumn image & vessel mask
+    imwrite(angio_struct.whole_volumn, fullfile(angio_struct.output_folder, 'volumn.png'));
+    imwrite(1-seg_image, fullfile(angio_struct.output_folder, 'mask.png'));
+    imwrite(angio_struct.background, fullfile(angio_struct.output_folder, 'background.png'));
 end
 
 writetable(stenosis_summary_tab,fullfile(output_save_dir, 'stenosis_detail.csv'),'Delimiter',',')  
