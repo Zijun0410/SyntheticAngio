@@ -47,11 +47,13 @@ for i = 1:db.size
     disp(['Running the ', num2str(i), ' case. File name: ', video_name])
         
     try
-        angio_obj = Angiogram(video_name, turbo, path_prefix, db_id, side, ...
-            save_folder, load_folder);
+%         angio_obj = Angiogram(video_name, turbo, path_prefix, db_id, side, ...
+%             save_folder, load_folder);
+        savedir = fullfile(turbo, path_prefix, save_folder, strcat(db_id, side), 'Full', video_name);
         for iFrame = 1:3
             % mkdir(fullfile(angio_obj.savefolder, angio_obj.name))
-            save_path = fullfile(angio_obj.savedir, angio_obj.name, ...
+            % angio_obj.savedir
+            save_path = fullfile(savedir, ...
                 strcat('frame', num2str(iFrame), '.png'));
             % imwrite(angio_obj.frame(:,:,iFrame), save_path);
             saving_struct.index(count) = count;
@@ -66,4 +68,5 @@ end
 saving_struct.save_dir = replace(saving_struct.save_dir,'\','+');
 
 saving_table = struct2table(saving_struct);
-writetable(saving_table,fullfile(angio_obj.savefolder, 'image_infor.csv'),'Delimiter',',')
+savefolder = fullfile(turbo, path_prefix, save_folder, strcat(db_id, side), 'Full');
+writetable(saving_table,fullfile(savefolder, 'image_infor.csv'),'Delimiter',',')
