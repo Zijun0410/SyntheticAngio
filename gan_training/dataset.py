@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 from PIL import Image
 import torch
-import torchvision.transforms as T
+import torchvision.transforms as transforms
 
 from data_utils import basic_transformations
 
@@ -28,7 +28,7 @@ def get_image_infor(dir_list, file_name):
 transformation_dict = dict(zip(['None', 'basic'], [None, basic_transformations]))
 
 # Open the image with path and turn it into a tensor
-open_image_as_tensor = lambda x: T.PILToTensor()(Image.open(x).convert("L"))
+open_image_as_tensor = lambda x: transforms.PILToTensor()(Image.open(x).convert("L"))
 
 class RealImage(D.Dataset):
     """
