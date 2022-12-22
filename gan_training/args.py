@@ -1,5 +1,6 @@
-
 from pathlib import Path
+from main_utils import get_save_name_from_hyper_params
+import numpy as np
 
 def training_args(hyper_params, batch_setting):
     
@@ -8,21 +9,21 @@ def training_args(hyper_params, batch_setting):
     # Define the generator model 
     modelG_kwags = {'type': None, 'args': {}}
     modelG_kwags['type'] = 'UNet'
-    modelG_kwags['args']['n_channels'] = 2
+    modelG_kwags['args']['n_channels'] = 3
     modelG_kwags['args']['n_classes'] = 1
-    modelG_kwags['args']['depth'] = 2
+    modelG_kwags['args']['depth'] = hyper_params['generator_depth']
     all_kwags['modelG_kwags'] = modelG_kwags
 
     # Define the discriminator model 
     modelD_kwags = {'type': None, 'args': {}}
-    modelD_kwags['type'] = 'ResNet18'
+    modelD_kwags['type'] = hyper_params['disciminator_type']
     modelD_kwags['args']['input_channel'] = 1
     modelD_kwags['args']['output_dim'] = 2
     all_kwags['modelD_kwags'] = modelD_kwags
 
     # Define the generator input dataset 
-    umr_dir=Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\GAN_Data\UoMR')
-    ukr_dir=Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\GAN_Data\UKR')
+    umr_dir=Path(r'Projects\Angiogram\Data\Processed\Zijun\Synthetic\GAN_Data\UoMR')
+    ukr_dir=Path(r'Projects\Angiogram\Data\Processed\Zijun\Synthetic\GAN_Data\UKR')
     dir_list = [umr_dir, ukr_dir]
 
     datasetG_kwags = {'type': None, 'args': {}}
@@ -33,8 +34,8 @@ def training_args(hyper_params, batch_setting):
     all_kwags['datasetG_kwags'] = datasetG_kwags
 
     # Define the discriminator input dataset  
-    umr_dir=Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Real_Image\UMR\Full')
-    ukr_dir=Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Real_Image\UKR\Full')
+    umr_dir=Path(r'Projects\Angiogram\Data\Processed\Zijun\Synthetic\Real_Image\UMR\Full')
+    ukr_dir=Path(r'Projects\Angiogram\Data\Processed\Zijun\Synthetic\Real_Image\UKR\Full')
     dir_list = [umr_dir, ukr_dir]
 
     datasetD_kwags = {'type': None, 'args': {}}
@@ -44,13 +45,12 @@ def training_args(hyper_params, batch_setting):
     datasetD_kwags['args']['file_name'] = 'image_infor.csv'
     all_kwags['datasetD_kwags'] = datasetD_kwags
 
-    # Define the dataloader
-    dataload_kwags = {'type': None, 'args': {}}
-    dataload_kwags['type'] = 'DataLoader'
-    dataload_kwags['args']['batch_size'] = batch_setting['batch_size']
-    dataload_kwags['args']['num_workers'] = 0
-    all_kwags['dataload_kwags'] = dataload_kwags
-
+    # # Define the dataloader
+    # dataload_kwags = {'type': None, 'args': {}}
+    # dataload_kwags['type'] = 'DataLoader'
+    # dataload_kwags['args']['batch_size'] = hyper_params['batch_size']
+    # dataload_kwags['args']['num_workers'] = 0
+    # all_kwags['dataload_kwags'] = dataload_kwags
 
     # Define the optimizer
     optim_kwags = {'type': None, 'args': {}}
@@ -71,24 +71,18 @@ def training_args(hyper_params, batch_setting):
     else:
         all_kwags['schedular_kwags'] = None
 
-    # TODO: Not decided yet
-    metric_kwags = {'type': None, 'args': {}}
-    metric_kwags['type'] = 'MetricCalculator'
-    metric_kwags['args']['target_metric'] = ['precision', 'auprc', 'auroc', 'sensitivity', 'specificity', 'f1']
-    metric_kwags['args']['method'] = 3 # The 0309 Run used method 4
-    all_kwags['metric_kwags'] = metric_kwags
-
-    loss_kwags = {}
-    loss_kwags['sigma_regularizer'] = 10
-    all_kwags['loss_kwags'] = loss_kwags
-
+    # Define the training setting
     training_kwags = {}
     training_kwags['start_epoch'] = 1
-    training_kwags['max_epoch'] = batch_setting['max_epoch'] ### CONSIDER ###
+    training_kwags['batch_size'] = hyper_params['batch_size']
+    training_kwags['max_epoch'] = hyper_params['max_epoch'] ### CONSIDER ###
     training_kwags['early_stop'] = hyper_params['early_stop'] ### CONSIDER ###
-    training_kwags['log_step'] = int(np.sqrt(data_kwags['args']['batch_size']))
+    training_kwags['pretrained_checkpoint'] = batch_setting['checkpoint_path'] ### Default: None ###
+    training_kwags['log_step'] = int(np.sqrt(hyper_params['batch_size']))
+    training_kwags['generator_step'] = hyper_params['generator_step']
     all_kwags['training_kwags'] = training_kwags
 
+    # Define the monitor setting
     monitor_kwags = {}
     monitor_kwags['mnt_mode'] ='min'
     monitor_kwags['mnt_metric'] = 'loss'
@@ -96,14 +90,16 @@ def training_args(hyper_params, batch_setting):
     monitor_kwags['save_period'] = 1
     all_kwags['monitor_kwags'] = monitor_kwags
 
-    infor_kwags = {}
-    infor_kwags['save_dir'] = ''
-    infor_kwags['task_name'] = batch_setting['task_name'] 
-    infor_kwags['log_date'] = batch_setting['date'] 
-    infor_kwags['save_name'] = get_save_name_from_hyper_params(hyper_params)
-    infor_kwags['checkpoint_dir'] = Path(infor_kwags['save_dir']) / 'model' / str(infor_kwags['log_date']) / infor_kwags['task_name'] / infor_kwags['save_name']
-    infor_kwags['log_dir'] = Path(infor_kwags['save_dir']) / 'log' / str(infor_kwags['log_date']) / infor_kwags['task_name']
-    infor_kwags['log_content'] = hyper_params
-    infor_kwags['log_name'] = f"{infor_kwags['save_name']}.csv"
-    infor_kwags['print_to_screen'] = batch_setting['print_to_screen']
-    all_kwags['infor_kwags'] = infor_kwags
+    # Define the log saving setting
+    inforlog_kwags = {}
+    inforlog_kwags['save_dir'] = ''
+    task_name = batch_setting['task_name'] 
+    log_date = batch_setting['date'] 
+    save_name = get_save_name_from_hyper_params(hyper_params)
+    inforlog_kwags['checkpoint_dir'] = Path(inforlog_kwags['save_dir']) / task_name / str(log_date) / save_name / 'model' 
+    inforlog_kwags['log_dir'] = Path(inforlog_kwags['save_dir']) / task_name / str(log_date) / save_name
+    # inforlog_kwags['meta_content'] = hyper_params
+    # inforlog_kwags['print_to_screen'] = batch_setting['print_to_screen']
+    all_kwags['inforlog_kwags'] = inforlog_kwags
+
+    return all_kwags

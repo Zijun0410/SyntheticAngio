@@ -7,3 +7,6 @@ demo/
 *.sublime-workspace
 *.sublime-project
 *.db
+*.pyc
+*.txt
+.DS_Store

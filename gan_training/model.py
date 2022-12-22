@@ -59,8 +59,7 @@ class UNet(nn.Module):
 
         logits = self.outc(self.x0)
         
-        return logits
-        
+        return logits        
 
 class ResNet18(object):
     """ResNet model with modified input & output layer"""
@@ -76,9 +75,9 @@ class ResNet18(object):
     def get_model(self):
         return self.model
 
-def count_parameters(model):
+def count_parameters(model, model_name):
     total_param = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f'The total number of parameter is {total_param/1e6 :.2f} million.')
+    print(f'The total number of parameter in the {model_name} is {total_param/1e6 :.2f} million.')
 
 if __name__ == '__main__':
     generator = UNet(2, 1, 2)

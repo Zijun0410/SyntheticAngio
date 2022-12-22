@@ -1,5 +1,5 @@
 import torch.utils.data as D
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import pandas as pd
 from PIL import Image
 import torch
@@ -17,7 +17,8 @@ def return_root_path():
 # Obtain all the paths to the images from the csv file
 def get_image_infor(dir_list, file_name):
     for i, dir_ in enumerate(dir_list):
-        image_infor = pd.read_csv(Path(dir_) / file_name)
+        dir_ = return_root_path() / PureWindowsPath(dir_.name)
+        image_infor = pd.read_csv(dir_ / file_name)
         if i == 0:
             df_combined = image_infor
         else:
@@ -28,7 +29,11 @@ def get_image_infor(dir_list, file_name):
 transformation_dict = dict(zip(['None', 'basic'], [None, basic_transformations]))
 
 # Open the image with path and turn it into a tensor
-open_image_as_tensor = lambda x: transforms.PILToTensor()(Image.open(x).convert("L"))
+def open_image_as_tensor(x):
+    img = transforms.PILToTensor()(Image.open(x).convert("L"))
+    if isinstance(img, torch.ByteTensor):
+        return img.float().div(255)
+    return img
 
 class RealImage(D.Dataset):
     """
@@ -44,8 +49,8 @@ class RealImage(D.Dataset):
 
     def __init__(self, dir_list, transform='None', file_name='image_infor.csv'):
         super(RealImage, self).__init__()
-        self.image_infor = get_image_infor(dir_list, file_name)
         self.root_path = return_root_path()
+        self.image_infor = get_image_infor(dir_list, file_name)
         self.transform = transformation_dict[transform]
     
     def adjust_dir(self, str_dir):
@@ -57,7 +62,7 @@ class RealImage(D.Dataset):
         image = open_image_as_tensor(str_dir)
         if self.transform:
             image = self.transform(image)
-        return index, image
+        return image.float()
 
     def __len__(self):
         return len(self.image_infor)
@@ -76,8 +81,8 @@ class GeneratorInput(D.Dataset):
     """
     def __init__(self, dir_list, transform='None', file_name='stenosis_detail.csv'):
         super(GeneratorInput, self).__init__()
-        self.image_infor = get_image_infor(dir_list, file_name)
         self.root_path = return_root_path()
+        self.image_infor = get_image_infor(dir_list, file_name)
         self.transform = transformation_dict[transform]
         self.folder_col_id = self.image_infor.columns.get_loc('output_folder')
 
@@ -93,7 +98,7 @@ class GeneratorInput(D.Dataset):
         images = torch.cat([image_volumn, image_mask, image_background], dim=0)
         if self.transform:
             images = self.transform(images)
-        return index, images
+        return images
 
     def __len__(self):
         return len(self.image_infor)
@@ -105,11 +110,11 @@ if __name__ == "__main__":
     dir_list = [umr_dir, ukr_dir]
     real_image = RealImage(dir_list)
     print(len(real_image))
-    print(real_image[1].shape)
+    print(real_image.shape)
 
     umr_dir=Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\GAN_Data\UoMR')
     ukr_dir=Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\GAN_Data\UKR')
     dir_list = [umr_dir, ukr_dir]
     generator_input = GeneratorInput(dir_list)
     print(len(generator_input))
-    print(generator_input[1].shape)
+    print(generator_input.shape)
