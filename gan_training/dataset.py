@@ -95,7 +95,8 @@ class GeneratorInput(D.Dataset):
         image_volumn = open_image_as_tensor(str_dir/'volumn.png')
         image_mask = open_image_as_tensor(str_dir/'mask.png')
         image_background = open_image_as_tensor(str_dir/'background.png')
-        images = torch.cat([image_volumn, image_mask, image_background], dim=0)
+        # images = torch.cat([image_volumn, image_mask, image_background], dim=0)
+        images = torch.cat([image_volumn, image_background], dim=0)
         if self.transform:
             images = self.transform(images)
         return images

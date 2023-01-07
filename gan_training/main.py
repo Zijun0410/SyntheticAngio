@@ -29,7 +29,10 @@ class Trainer(object):
 
         # Decide the device
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+        # TODO: add the multi-gpu support
+        if torch.cuda.device_count() > 0:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+        
         # Initiate the generator and discriminator
         self.generator = self.init_class(module_arch, modelG_kwags).to(self.device)
         discriminator_handle = self.init_class(module_arch, modelD_kwags)
@@ -93,10 +96,12 @@ class Trainer(object):
         self.init_attribute(monitor_kwags)
 
         # Initiate the logging attribute: 
-        # log_dir, checkpoint_dir, save_dir
+        # log_dir, checkpoint_dir, save_dir, output_dir
         self.init_attribute(inforlog_kwags)
         
         self.writer = SummaryWriter(self.log_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         checkpt = self.load_checkpoint()
 
@@ -204,6 +209,7 @@ class Trainer(object):
 
                     # Record the generator loss
                     loss_generator += errG.item()
+                    count_generator_update += 1
 
                 batch_count = batch_idx + epoch * len(self.generator_loader) + 1
                 
@@ -227,7 +233,8 @@ class Trainer(object):
 
             # Epoch Level Saving
             self.writer.add_scalar('loss/discriminator loss', loss_discriminator / len(self.generator_loader), epoch)
-            self.writer.add_scalar('loss/generator loss', loss_generator / count_generator_update, epoch)
+            if count_generator_update != 0:
+                self.writer.add_scalar('loss/generator loss', loss_generator / count_generator_update, epoch)
             
             # Save the model checkpoints
 
@@ -324,7 +331,7 @@ if __name__ == '__main__':
 
     batch_setting = {}
     batch_setting['checkpoint_path'] = None
-    batch_setting['task_name'] = 'TRY'
+    batch_setting['task_name'] = 'TRY_Group_2_INIT_36_CHANNEL_2'
     batch_setting['date'] = 20221220
 
     all_kwags = training_args(hyper_params, batch_setting)

@@ -9,9 +9,11 @@ def training_args(hyper_params, batch_setting):
     # Define the generator model 
     modelG_kwags = {'type': None, 'args': {}}
     modelG_kwags['type'] = 'UNet'
-    modelG_kwags['args']['n_channels'] = 3
+    modelG_kwags['args']['n_channels'] = 2
     modelG_kwags['args']['n_classes'] = 1
     modelG_kwags['args']['depth'] = hyper_params['generator_depth']
+    modelG_kwags['args']['init_n'] = 36
+    modelG_kwags['args']['group'] = 2
     all_kwags['modelG_kwags'] = modelG_kwags
 
     # Define the discriminator model 
@@ -97,6 +99,7 @@ def training_args(hyper_params, batch_setting):
     log_date = batch_setting['date'] 
     save_name = get_save_name_from_hyper_params(hyper_params)
     inforlog_kwags['checkpoint_dir'] = Path(inforlog_kwags['save_dir']) / task_name / str(log_date) / save_name / 'model' 
+    inforlog_kwags['output_dir'] = Path(inforlog_kwags['save_dir']) / task_name / str(log_date) / save_name / 'output' 
     inforlog_kwags['log_dir'] = Path(inforlog_kwags['save_dir']) / task_name / str(log_date) / save_name
     # inforlog_kwags['meta_content'] = hyper_params
     # inforlog_kwags['print_to_screen'] = batch_setting['print_to_screen']

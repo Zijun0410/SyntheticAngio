@@ -1,0 +1,2 @@
+readI = imread('Z:\Projects\Angiogram\Code\Zijun\SyntheticAngio\gan_training\TRY_Group_2_INIT_36_CHANNEL_2\20221220\disciminator_type_ResNet18_generator_depth_2_batch_size_8_learning_rate_0.0001_max_epoch_40_generator_step_1_lr_schedule_False_early_stop_10\output\sythetic_samples_7000.png');
+J = imcomplement(readI);

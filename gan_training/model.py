@@ -2,14 +2,13 @@ from model_utils import *
 import torchvision.models as models
 
 class UNet(nn.Module):
-    def __init__(self, n_channels, n_classes, depth=4):
+    def __init__(self, n_channels, n_classes, init_n=64, depth=4, group=1):
         super(UNet, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.depth = depth
-
-        init_n = 64
-        self.inc = DoubleConv(n_channels, init_n)
+        # init_n: initial number of filters, default is 64
+        self.inc = DoubleConv(n_channels, init_n, group=group)
 
         for iDep in range(depth):
             setattr(self, f'down{iDep+1}', 
@@ -38,6 +37,7 @@ class UNet(nn.Module):
             setattr(self, f'x{iDep+1}', 
                 getattr(self, f'down{iDep+1}')(getattr(self, f'x{iDep}'))
                 )
+
         # e.g. when the depth is 4, forward through the following 'down' layers  
             # x1 = self.down1(x0)
             # x2 = self.down2(x1)
