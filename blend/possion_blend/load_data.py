@@ -46,11 +46,12 @@ class ImageBlend(D.Dataset):
 
     def __getitem__(self, index):
         str_dir = self.adjust_dir(self.image_infor.iloc[index, self.folder_col_id])    
-        image_volumn = cv2.imread(str(str_dir/'volumn.png')) #, cv2.IMREAD_GRAYSCALE)
+        # image_volumn = cv2.imread(str(str_dir/'volumn.png')) #, cv2.IMREAD_GRAYSCALE)
+        image_volumn = cv2.imread(str(str_dir/'synthetic.png'))
         segmentation = cv2.imread(str(str_dir/'segmentation.png'), cv2.IMREAD_GRAYSCALE)
         dilated_segmentation = cv2.dilate(segmentation, self.kernel, iterations=1)
         image_background = cv2.imread(str(str_dir/'background.png')) #, cv2.IMREAD_GRAYSCALE)
-        return image_volumn, dilated_segmentation, image_background, str_dir
+        return image_volumn, dilated_segmentation, segmentation, image_background, str_dir
 
     def __len__(self):
         return len(self.image_infor)

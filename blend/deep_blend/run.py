@@ -32,7 +32,7 @@ def main():
     vgg = Vgg16().to(device)
 
     # Default weights for loss functions
-    grad_weight = 1e4; style_weight = 1e4; content_weight = 1; tv_weight = 1e-6
+    grad_weight = 10; style_weight = 1; content_weight = 1; tv_weight = 1e-6
     num_steps = 1000
 
     for idx in range(len(imageBlend)):
