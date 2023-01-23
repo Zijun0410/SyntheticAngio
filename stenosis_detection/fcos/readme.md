@@ -11,6 +11,12 @@ source activate digits
 salloc --account=kayvan1 --nodes=1 --ntasks-per-node=1 --mem-per-cpu=8GB --cpus-per-task=1 --partition=gpu --gres=gpu:1 --time=00:20:00
 ```
 
+### AutoLoad in Jupyter Lab
+```
+%load_ext autoreload
+%autoreload 2
+```
+
 ### This is a tutorial on using the FCOS model for inference and plotting out the model's predictions.
 https://learnopencv.com/fcos-anchor-free-object-detection-explained/
 
