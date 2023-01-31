@@ -66,7 +66,7 @@ def training_args(hyper_params, batch_setting):
     # Define the monitor setting
     monitor_kwags = {}
     monitor_kwags['mnt_mode'] ='min'
-    monitor_kwags['mnt_metric'] = 'Val_loss'
+    monitor_kwags['mnt_metric'] = 'val_loss'
     monitor_kwags['mnt_best'] = np.inf if monitor_kwags['mnt_mode'] == 'min' else -np.inf
     monitor_kwags['save_period'] = 1
     all_kwags['monitor_kwags'] = monitor_kwags

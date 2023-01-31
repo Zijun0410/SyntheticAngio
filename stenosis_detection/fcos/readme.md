@@ -8,7 +8,7 @@ source activate digits
 
 ### RunGPU from terminal
 ```bash
-salloc --account=kayvan1 --nodes=1 --ntasks-per-node=1 --mem-per-cpu=8GB --cpus-per-task=1 --partition=gpu --gres=gpu:1 --time=00:20:00
+salloc --account=kayvan1 --nodes=1 --ntasks-per-node=1 --mem-per-cpu=8GB --cpus-per-task=1 --partition=gpu --gres=gpu:1 --time=00:30:00
 ```
 
 ### AutoLoad in Jupyter Lab
@@ -19,6 +19,7 @@ salloc --account=kayvan1 --nodes=1 --ntasks-per-node=1 --mem-per-cpu=8GB --cpus-
 
 ### This is a tutorial on using the FCOS model for inference and plotting out the model's predictions.
 https://learnopencv.com/fcos-anchor-free-object-detection-explained/
+https://github.com/yqyao/FCOS_PLUS
 
 ### Inputs for training
 The input to the model is expected to be a list of tensors, each of shape `[C, H, W]`, one for each image, and should be in 0-1 range. Different images can have different sizes.
