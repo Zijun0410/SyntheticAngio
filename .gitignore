@@ -10,3 +10,5 @@ demo/
 *.pyc
 *.txt
 .DS_Store
+*.pt
+stenosis_detection/fcos/*/*/*/events*

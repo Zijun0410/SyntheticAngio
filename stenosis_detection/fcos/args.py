@@ -20,17 +20,26 @@ def training_args(hyper_params, batch_setting):
 
     dataset_train_kwags = {'type': None, 'args': {}}
     dataset_train_kwags['type'] = 'SyntheticImage'
-    dataset_train_kwags['args']['dir_list'] = [ukr_dir]
+    dataset_train_kwags['args']['dir_list'] = [umr_dir]
     dataset_train_kwags['args']['transform'] = 'None'
     dataset_train_kwags['args']['file_name'] = 'stenosis_detail.csv'
     all_kwags['dataset_train_kwags'] = dataset_train_kwags
 
     dataset_val_kwags = {'type': None, 'args': {}}
-    dataset_val_kwags['type'] = 'RealImage'
-    dataset_val_kwags['args']['dir_list'] = [umr_dir]
+    dataset_val_kwags['type'] = 'SyntheticImage'
+    dataset_val_kwags['args']['dir_list'] = [ukr_dir]
     dataset_val_kwags['args']['transform'] = 'None'
-    dataset_val_kwags['args']['file_name'] = 'image_infor.csv'
+    dataset_val_kwags['args']['file_name'] = 'stenosis_detail.csv'
     all_kwags['dataset_val_kwags'] = dataset_val_kwags
+
+    umr_test_dir = Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Real_Image\UMR\Full')
+
+    dataset_test_kwags = {'type': None, 'args': {}}
+    dataset_test_kwags['type'] = 'RealImage'
+    dataset_test_kwags['args']['dir_list'] = [umr_test_dir]
+    dataset_test_kwags['args']['transform'] = 'None'
+    dataset_test_kwags['args']['file_name'] = 'image_infor.csv'
+    all_kwags['dataset_test_kwags'] = dataset_test_kwags
 
     # Define the optimizer
     optim_kwags = {'type': None, 'args': {}}
@@ -60,7 +69,7 @@ def training_args(hyper_params, batch_setting):
     training_kwags['max_epoch'] = hyper_params['max_epoch'] ### CONSIDER ###
     training_kwags['early_stop'] = hyper_params['early_stop'] ### CONSIDER ###
     training_kwags['pretrained_checkpoint'] = batch_setting['checkpoint_path'] ### Default: None ###
-    training_kwags['log_step'] = int(np.sqrt(hyper_params['batch_size']))
+    training_kwags['log_step'] = 20
     all_kwags['training_kwags'] = training_kwags
 
     # Define the monitor setting
@@ -77,9 +86,9 @@ def training_args(hyper_params, batch_setting):
     task_name = batch_setting['task_name'] 
     log_date = batch_setting['date'] 
     save_name = utils.get_save_name_from_hyper_params(hyper_params)
-    inforlog_kwags['checkpoint_dir'] = Path(inforlog_kwags['save_dir']) / task_name / str(log_date) / save_name / 'model' 
-    inforlog_kwags['output_dir'] = Path(inforlog_kwags['save_dir']) / task_name / str(log_date) / save_name / 'output' 
-    inforlog_kwags['log_dir'] = Path(inforlog_kwags['save_dir']) / task_name / str(log_date) / save_name
+    inforlog_kwags['checkpoint_dir'] = Path(inforlog_kwags['save_dir']) / str(log_date) / task_name / save_name / 'model' 
+    inforlog_kwags['output_dir'] = Path(inforlog_kwags['save_dir']) / str(log_date) / task_name / save_name / 'output' 
+    inforlog_kwags['log_dir'] = Path(inforlog_kwags['save_dir']) / str(log_date) / task_name / save_name
     # inforlog_kwags['meta_content'] = hyper_params
     # inforlog_kwags['print_to_screen'] = batch_setting['print_to_screen']
     all_kwags['inforlog_kwags'] = inforlog_kwags

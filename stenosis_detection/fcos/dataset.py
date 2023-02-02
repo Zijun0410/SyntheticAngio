@@ -82,6 +82,38 @@ class SyntheticImage(D.Dataset):
         return len(self.image_infor)
 
 
+class RealImage(D.Dataset):
+    """
+    Dataset for Real X-ray Angiograhy Images
+    Input:
+        dir_list <list of python string>: include the directory of the image
+        file_name <python string>: the name of the csv file that contains the information of the stensosis
+        transform <python string>: the name of the transformation
+    """
+    # umr_dir=Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Real_Image\UMR\Full')
+    # ukr_dir=Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Real_Image\UKR\Full')
+    # dir_list = [umr_dir, ukr_dir]
+
+    def __init__(self, dir_list, transform='None', file_name='image_infor.csv'):
+        super(RealImage, self).__init__()
+        self.root_path = return_root_path()
+        self.image_infor = get_image_infor(dir_list, file_name)
+        self.transform = transformation_dict[transform]
+    
+    def adjust_dir(self, str_dir):
+        image_dir = Path(str_dir.replace('+', '/'))
+        return self.root_path / image_dir.relative_to("Z:/")
+
+    def __getitem__(self, index):
+        str_dir = self.adjust_dir(self.image_infor.iloc[index, 1])
+        image = open_image_as_tensor(str_dir)
+        if self.transform:
+            image = self.transform(image)
+        return image.float()
+
+    def __len__(self):
+        return len(self.image_infor)
+    
 if __name__ == "__main__":
     umr_dir=Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Sythetic_Output\UoMR')
     ukr_dir=Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Sythetic_Output\UKR')

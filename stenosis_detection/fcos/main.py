@@ -1,5 +1,5 @@
 import args as module_args
-# import argparse
+import argparse
 import torch
 # import torch.nn as nn
 import main_utils as utils
@@ -16,15 +16,18 @@ import torch.optim.lr_scheduler as module_schedular
 
 
 
-def main(all_args):
+def main(all_args, train=True, test=False):
     utils.fix_random_seeds()
     # Initiate the trainer
     trainer = Trainer(**all_args)
-    trainer.train()
+    if train:
+        trainer.train()
+    if test:
+        trainer.test()
 
 class Trainer(object):
     """docstring for Trainer"""
-    def __init__(self, model_kwags, dataset_train_kwags, dataset_val_kwags,  
+    def __init__(self, model_kwags, dataset_train_kwags, dataset_val_kwags, dataset_test_kwags,  
         optim_kwags, schedular_kwags, training_kwags, monitor_kwags, inforlog_kwags):
 
         # Decide the device
@@ -41,7 +44,8 @@ class Trainer(object):
         # Initiate the dataset
         self.train_data = self.init_class(module_dataset, dataset_train_kwags)
         self.val_data = self.init_class(module_dataset, dataset_val_kwags)
-        
+        self.test_data = self.init_class(module_dataset, dataset_test_kwags)
+
         # Initiate training logic attributes
         # batch_size, start_epoch, max_epoch, log_step, early_stop, pretrained_checkpoint
         self.init_attribute(training_kwags)
@@ -57,10 +61,15 @@ class Trainer(object):
         dataloader_kwags['args'].update({'sampler':module_dataloader.sampler.RandomSampler(range(len(self.train_data)))})
         self.train_loader = self.init_class(module_dataloader, 
                 dataloader_kwags, self.train_data)
+        
         dataloader_kwags['args'].update({'sampler':module_dataloader.sampler.RandomSampler(range(len(self.val_data)))})
         self.val_loader = self.init_class(module_dataloader, 
                 dataloader_kwags, self.val_data)
-
+        
+        dataloader_kwags['args'].update({'sampler':module_dataloader.sampler.RandomSampler(range(len(self.test_data)))})
+        self.test_loader = self.init_class(module_dataloader, 
+                dataloader_kwags, self.test_data)
+        
         # Initiate the optimizers
         trainable_params = filter(lambda p: p.requires_grad, 
                                 self.model.parameters())
@@ -107,9 +116,14 @@ class Trainer(object):
         not_improved_count = 0
         for epoch in range(self.start_epoch, self.max_epoch + 1):
 
-            self._train_epoch(epoch)
-            val_loss = self._val_epoch()
-            self.writer.add_scalar('val_loss/total_loss', val_loss, epoch)
+            train_loss = self._train_epoch(epoch)
+            val_loss = self._val_epoch(epoch)
+            print(f"[{epoch}/{self.max_epoch}] " + f"train_loss: {train_loss/len(self.train_loader):.3f} val_loss: {val_loss/len(self.val_loader):.3f}")
+            
+            self.writer.add_scalar('val_loss/total_loss', val_loss/len(self.val_loader), epoch)
+            
+            if self.lr_scheduler is not None:
+                self.lr_scheduler.step(val_loss/len(self.val_loader))
 
             # evaluate model performance according to configured metric, save best checkpoint as model_best
             best = False
@@ -124,8 +138,7 @@ class Trainer(object):
                 not_improved_count += 1   
 
             if not_improved_count > self.early_stop:
-                if self.print_to_screen: print(
-                    "Validation performance didn\'t improve for {} epochs.\n ".format(
+                print("Validation performance didn\'t improve for {} epochs.\n ".format(
                         self.early_stop),">>>>>>>>>>>Training stops<<<<<<<<<<<<.")
                 break 
 
@@ -152,7 +165,11 @@ class Trainer(object):
 
             images = [image.to(self.device) for image in images]
             # targets = [target.to(self.device) for target in targets]
-            targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
+            eg_list = list(list(targets[key]) for key in targets)
+            target_dict_list = [dict(zip(targets.keys(), [eg_list[i][j] for i in range(
+                len(targets))])) for j in range(len(eg_list[0]))]
+
+            targets = [{k: v.to(self.device) for k, v in t.items()} for t in target_dict_list]
             self.optimizer.zero_grad()
 
             loss_output = self.model(images, targets)
@@ -168,9 +185,6 @@ class Trainer(object):
             
             # Record the total loss
             total_loss += losses.item()
-            
-            if self.lr_scheduler is not None:
-                self.lr_scheduler.step()
 
             # batch_count = epoch * len(self.train_loader) + batch_idx + 1
             if (batch_idx + 1) % self.log_step == 0 or (batch_idx + 1) == len(self.train_loader):
@@ -179,28 +193,50 @@ class Trainer(object):
                 # for loss_key in loss_dict:
                 #     self.writer.add_scalar(f'batch_loss/{loss_key}', loss_output[loss_key].item(), batch_count)
                 # Print out the log information
-                loss_str = ' '.join([f'{loss_key}: {loss_dict[loss_key].item():.3f}' for loss_key in loss_dict])
-                print(f"[{epoch + 1}/{self.max_epoch}][{(batch_idx + 1)}/{len(self.generator_loader)}] " +
+                loss_str = ' '.join([f'{loss_key}: {loss_output[loss_key].item():.3f}' for loss_key in loss_dict])
+                print(f"[{epoch}/{self.max_epoch}][{(batch_idx + 1)}/{len(self.train_loader)}] " +
                     f"total_loss: {losses.item():.3f} " + loss_str)
 
         # Epoch Level Saving
-        self.writer.add_scalar('train_loss/total_loss', total_loss, epoch)
+        self.writer.add_scalar('train_loss/total_loss', total_loss/len(self.train_loader), epoch)
         for loss_key in loss_dict:
-            self.writer.add_scalar(f'train_loss/{loss_key}', loss_dict[loss_key], epoch)
-
+            self.writer.add_scalar(f'train_loss/{loss_key}', loss_dict[loss_key]/len(self.train_loader), epoch)
+        return total_loss
     
-    def _val_epoch(self):
+    def _val_epoch(self, epoch):
         val_loss = 0.0
         # val_loss_dict = dict(zip(['classification', 'bbox_regression', 'bbox_ctrness'], [0]*3))
-        for targets, images in self.val_loader:
+        for batch_idx, (targets, images) in enumerate(self.val_loader):
                 images = [image.to(self.device) for image in images]
-                targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
+                eg_list = list(list(targets[key]) for key in targets)
+                target_dict_list = [dict(zip(targets.keys(), [eg_list[i][j] for i in range(
+                    len(targets))])) for j in range(len(eg_list[0]))]
+                targets = [{k: v.to(self.device) for k, v in t.items()} for t in target_dict_list]
+
                 with torch.no_grad():
                     loss_output = self.model(images, targets)
                     losses = sum(loss for loss in loss_output.values())
                     val_loss += losses.item()
 
+                if (batch_idx + 1) % (self.log_step*2) == 0 or (batch_idx + 1) == len(self.val_loader):
+                    # # Log the scalar values
+                    # self.writer.add_scalar('batch_loss/total_loss', losses.item(), batch_count)
+                    # for loss_key in loss_dict:
+                    #     self.writer.add_scalar(f'batch_loss/{loss_key}', loss_output[loss_key].item(), batch_count)
+                    # Print out the log information
+                    loss_str = ' '.join([f'{loss_key}: {loss_output[loss_key].item():.3f}' for loss_key in loss_output])
+                    print(f"[{epoch}/{self.max_epoch}][{(batch_idx + 1)}/{len(self.val_loader)}] " +
+                        f"total_loss: {losses.item():.3f} " + loss_str)
+                    
         return val_loss
+
+    def test(self):
+        """
+        Full test logic
+        """
+        print('---------------------TESTING--------------------')
+
+        pass
 
     def init_attribute(self, kwargs):
         for key in kwargs:
@@ -260,45 +296,44 @@ class Trainer(object):
             'optimizer': self.optimizer.state_dict(),
         }
         
-        # path_to_checkpoint_file = self._checkpoint_file_path(self.checkpoint_dir, epoch)    
-        # torch.save(state, path_to_checkpoint_file)  
-        # if self.print_to_screen: print("Saving checkpoint: {} ...".format(path_to_checkpoint_file.name))    
-        
         torch.save(state, self.checkpoint_dir / f"checkpoint_{epoch}.pt")
 
         if save_best:
-            best_path = str(self.checkpoint_dir / 'model_best.pth')
+            best_path = str(self.checkpoint_dir / 'model_best.pt')
             torch.save(state, best_path)
-            if self.print_to_screen: print("Saving current best: model_best.pth ...")
+            print("Saving current best: model_best.pth ...")
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # # parser.add_argument('-d', '--dataset', default='rca', type=str,
-    # #                   help='The dataset type, rca, lca or all')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m', '--mode', default='train', type=str,
+                      help='The mode of the program, train or test, or both')
+    args_input = parser.parse_args()
 
-    # args_input = parser.parse_args()
-
-    # genrator_type_dict = dict(zip(['unet', ''], ['']))
-    # generator_type = args_input.generator_type
-    # disciminator_str = args_input.disciminator_type
-    # disciminator_type_dict = dict(zip(['resnet18'], ['ResNet18']))
-    # generator_depth = args_input.generator_depth
-    # dataset = args_input.dataset
-    # assert dataset in ['rca', 'lca', 'all']
+    train_flag = False
+    test_flag = False
+    mode = args_input.dataset
+    assert mode in ['train', 'test', 'both']
+    if mode == 'train':
+        train_flag = True
+    elif mode == 'test':
+        test_flag = True
+    else:
+        train_flag = True
+        test_flag = True
 
     hyper_params = {}
-    hyper_params['batch_size'] = 2
+    hyper_params['batch_size'] = 10
     hyper_params['learning_rate'] = 1e-4
     hyper_params['weight_decay'] = 1e-5
-    hyper_params['max_epoch'] = 20
+    hyper_params['max_epoch'] = 100
     hyper_params['lr_schedule'] = True
-    hyper_params['early_stop'] = 10
+    hyper_params['early_stop'] = 15
 
     batch_setting = {}
     batch_setting['checkpoint_path'] = None
-    batch_setting['task_name'] = 'DEBUG'
-    batch_setting['date'] = 20230131
+    batch_setting['task_name'] = 'Baseline'
+    batch_setting['date'] = 20230201
 
     all_kwags = module_args.training_args(hyper_params, batch_setting)
 
-    main(all_kwags)
+    main(all_kwags, train_flag, test_flag)
