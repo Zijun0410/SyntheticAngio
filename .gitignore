@@ -11,4 +11,4 @@ demo/
 *.txt
 .DS_Store
 *.pt
-stenosis_detection/fcos/*/*/*/events*
+stenosis_detection/fcos/*/*/events*

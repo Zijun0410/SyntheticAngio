@@ -39,6 +39,7 @@ def training_args(hyper_params, batch_setting):
     dataset_test_kwags['args']['dir_list'] = [umr_test_dir]
     dataset_test_kwags['args']['transform'] = 'None'
     dataset_test_kwags['args']['file_name'] = 'image_infor.csv'
+    dataset_test_kwags['args']['name'] = 'UMR'
     all_kwags['dataset_test_kwags'] = dataset_test_kwags
 
     # Define the optimizer
@@ -86,9 +87,9 @@ def training_args(hyper_params, batch_setting):
     task_name = batch_setting['task_name'] 
     log_date = batch_setting['date'] 
     save_name = utils.get_save_name_from_hyper_params(hyper_params)
-    inforlog_kwags['checkpoint_dir'] = Path(inforlog_kwags['save_dir']) / str(log_date) / task_name / save_name / 'model' 
-    inforlog_kwags['output_dir'] = Path(inforlog_kwags['save_dir']) / str(log_date) / task_name / save_name / 'output' 
-    inforlog_kwags['log_dir'] = Path(inforlog_kwags['save_dir']) / str(log_date) / task_name / save_name
+    inforlog_kwags['checkpoint_dir'] = Path(inforlog_kwags['save_dir']) / str(log_date) / task_name  / 'model' 
+    inforlog_kwags['output_dir'] = Path(inforlog_kwags['save_dir']) / str(log_date) / task_name / 'output' 
+    inforlog_kwags['log_dir'] = Path(inforlog_kwags['save_dir']) / str(log_date) / task_name 
     # inforlog_kwags['meta_content'] = hyper_params
     # inforlog_kwags['print_to_screen'] = batch_setting['print_to_screen']
     all_kwags['inforlog_kwags'] = inforlog_kwags

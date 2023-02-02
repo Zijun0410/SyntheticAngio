@@ -13,17 +13,16 @@ import torch.utils.data as module_dataloader
 
 import torch.optim as module_optim
 import torch.optim.lr_scheduler as module_schedular
+import numpy as np
 
-
-
-def main(all_args, train=True, test=False):
+def main(all_args, train=True, test=False, threshold=0.5):
     utils.fix_random_seeds()
     # Initiate the trainer
     trainer = Trainer(**all_args)
     if train:
         trainer.train()
     if test:
-        trainer.test()
+        trainer.test(threshold)
 
 class Trainer(object):
     """docstring for Trainer"""
@@ -98,13 +97,13 @@ class Trainer(object):
 
         if checkpt is not None:
 
-            self.model.load_state_dict(checkpt['model'])
+            self.model.load_state_dict(checkpt['state_dict'])
             self.optimizer.load_state_dict(checkpt['optimizer'])
             self.start_epoch = checkpt['epoch'] + 1
 
             try:
                 self.lr_scheduler.load_state_dict(checkpt['scheduler'])
-            except TypeError:
+            except KeyError:
                 print('Warning: there is a mismatch for the schedular type.')
 
     def train(self):
@@ -230,14 +229,35 @@ class Trainer(object):
                     
         return val_loss
 
-    def test(self):
+    def test(self, detection_threshold):
         """
         Full test logic
         """
+    
         print('---------------------TESTING--------------------')
+        self.model.eval()
+        count = 0
+        for batch_idx, (idxes, images) in enumerate(self.test_loader):
+            images = [image.to(self.device) for image in images]
+            outputs = self.model(images)
 
-        pass
+            for i, idx in enumerate(idxes):
+                # Get score for all the predicted objects.
+                pred_scores = outputs[i]['scores'].detach().cpu().numpy()
+                # Get all the predicted bounding boxes.
+                pred_bboxes = outputs[i]['boxes'].detach().cpu().numpy()
+                # Get boxes above the threshold score.
+                boxes = pred_bboxes[pred_scores >= detection_threshold].astype(np.int32)
+                pred_labels = outputs[i]['labels'].detach().cpu().numpy()
+                labels = pred_labels[pred_scores >= detection_threshold]
+                
+                self.test_data.save_image(int(idx.item()), boxes, labels, self.output_dir)
+                
+                count += 1
 
+                if count == 200:
+                    return 0
+                
     def init_attribute(self, kwargs):
         for key in kwargs:
             setattr(self, key, kwargs[key])
@@ -256,17 +276,22 @@ class Trainer(object):
         checkpt = None
         if self.pretrained_checkpoint is None and os.path.isdir(self.checkpoint_dir):
             # Try to resume from the latest checkpoint if self.pretrained_checkpoint is None
-            latest_ckpt_pth = utils.get_the_latest_ckpt(self.checkpoint_dir)
-            if latest_ckpt_pth is not None:
-                checkpt = torch.load(self.checkpoint_dir / latest_ckpt_pth)
-                print(f'Load the latest checkpoint: {latest_ckpt_pth}')
+            if os.path.isfile(self.checkpoint_dir / 'model_best.pt'):
+                checkpt = torch.load(self.checkpoint_dir / 'model_best.pt', map_location=self.device)
+                print(f'Load the best checkpoint: {self.checkpoint_dir / "model_best.pt"}')
             else:
-                print(f'No checkpoint found in {self.checkpoint_dir}, the model is initiated without existing checkpoints.')
+                latest_ckpt_pth = utils.get_the_latest_ckpt(self.checkpoint_dir)
+                if latest_ckpt_pth is not None:
+                    checkpt = torch.load(self.checkpoint_dir / latest_ckpt_pth, map_location=self.device)
+                    print(f'Load the latest checkpoint: {latest_ckpt_pth}')
+                else:
+                    print(f'No checkpoint found in {self.checkpoint_dir},'+
+                          ' the model is initiated without existing checkpoints.')
         elif self.pretrained_checkpoint is not None and (self.pretrained_checkpoint.endswith('.pt') 
             and os.path.isfile(self.pretrained_checkpoint)):
             # load the pretrained checkpoint if self.pretrained_checkpoint is not None
             print(f'Load pretrained checkpoint: {self.pretrained_checkpoint}')
-            checkpt = torch.load(self.pretrained_checkpoint)
+            checkpt = torch.load(self.pretrained_checkpoint, map_location=self.device)
         else:
             print(f'The model is initiated without existing checkpoints and is saved to {self.checkpoint_dir}')
             self.ensure_dir(self.checkpoint_dir)
@@ -307,11 +332,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--mode', default='train', type=str,
                       help='The mode of the program, train or test, or both')
+    parser.add_argument('-t', '--threshold', default=0.5, type=float,
+                      help='The mode of the program, train or test, or both')
     args_input = parser.parse_args()
 
     train_flag = False
     test_flag = False
-    mode = args_input.dataset
+    mode = args_input.mode
     assert mode in ['train', 'test', 'both']
     if mode == 'train':
         train_flag = True
@@ -336,4 +363,4 @@ if __name__ == '__main__':
 
     all_kwags = module_args.training_args(hyper_params, batch_setting)
 
-    main(all_kwags, train_flag, test_flag)
+    main(all_kwags, train_flag, test_flag, threshold=args_input.threshold)

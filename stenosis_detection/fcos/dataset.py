@@ -1,3 +1,4 @@
+
 import torch.utils.data as D
 from pathlib import Path, PureWindowsPath
 import pandas as pd
@@ -6,6 +7,11 @@ import torch
 import torchvision.transforms as transforms
 
 from data_utils import basic_transformations
+import cv2
+import numpy as np
+
+STENOSIS_CLASSES = {0: 'na', 1: 'stenosis', 2: 'severe'}
+COLORS = np.random.uniform(0, 255, size=(len(STENOSIS_CLASSES), 3))
 
 # Define the root path
 def return_root_path():
@@ -94,11 +100,12 @@ class RealImage(D.Dataset):
     # ukr_dir=Path(r'Z:\Projects\Angiogram\Data\Processed\Zijun\Synthetic\Real_Image\UKR\Full')
     # dir_list = [umr_dir, ukr_dir]
 
-    def __init__(self, dir_list, transform='None', file_name='image_infor.csv'):
+    def __init__(self, dir_list, transform='None', file_name='image_infor.csv', name='UMR'):
         super(RealImage, self).__init__()
         self.root_path = return_root_path()
         self.image_infor = get_image_infor(dir_list, file_name)
         self.transform = transformation_dict[transform]
+        self.name = name
     
     def adjust_dir(self, str_dir):
         image_dir = Path(str_dir.replace('+', '/'))
@@ -109,7 +116,68 @@ class RealImage(D.Dataset):
         image = open_image_as_tensor(str_dir)
         if self.transform:
             image = self.transform(image)
-        return image.float()
+        return index, image.float()
+
+    def save_image(self, index, boxes, labels, output_dir):
+        # Get all the predicited class names.
+        classes = [STENOSIS_CLASSES[i] for i in labels]
+        str_dir = self.adjust_dir(self.image_infor.iloc[index, 1])
+        image = cv2.imread(str(str_dir))
+        updated_image = self.draw_boxes(boxes, classes, labels, image)
+        save_dir = output_dir / self.name 
+        name_str = str_dir.name.split('.')[0]
+        save_dir.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(save_dir / f'{str_dir.parent.name}_{name_str}.png'), updated_image)
+        
+    def draw_boxes(self, boxes, classes, labels, image):
+        """
+        Draws the bounding box around a detected object.
+        """
+        lw = max(round(sum(image.shape) / 2 * 0.003), 2) # Line width.
+        tf = max(lw - 1, 1) # Font thickness.
+        
+        for i, box in enumerate(boxes):
+            p1, p2 = (int(box[0]), int(box[1])), (int(box[2]), int(box[3]))
+            color = COLORS[labels[i]]
+            class_name = classes[i]
+            cv2.rectangle(
+                image,
+                p1,
+                p2,
+                color[::-1],
+                thickness=lw,
+                lineType=cv2.LINE_AA
+            )
+            # For filled rectangle.
+            w, h = cv2.getTextSize(
+                class_name, 
+                0, 
+                fontScale=lw / 3, 
+                thickness=tf
+            )[0]  # Text width, height
+            
+            outside = p1[1] - h >= 3
+            p2 = p1[0] + w, p1[1] - h - 3 if outside else p1[1] + h + 3
+            
+            cv2.rectangle(
+                image, 
+                p1, 
+                p2, 
+                color=color[::-1], 
+                thickness=-1, 
+                lineType=cv2.LINE_AA
+            )  
+            # cv2.putText(
+            #     image, 
+            #     class_name, 
+            #     (p1[0], p1[1] - 5 if outside else p1[1] + h + 2),
+            #     cv2.FONT_HERSHEY_SIMPLEX, 
+            #     fontScale=lw / 3.8, 
+            #     color=(255, 255, 255), 
+            #     thickness=tf, 
+            #     lineType=cv2.LINE_AA
+            # )
+        return image
 
     def __len__(self):
         return len(self.image_infor)
